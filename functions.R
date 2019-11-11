@@ -266,33 +266,34 @@ numNAs<-function(x){
 }
 
 #### IRT function ####
+#Not regularly used
 
-irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #dataframe should not include ID variable
-  if(apply(dataframe, 1, numNAs) %>% equals(length(dataframe[1,])) %>% any){
-    print("Warning, some rows removed for being empty")
-    missing.rows.list <- remove.missing.rows(dataframe)
-  }
-  dataframe <- data.frame(missing.rows.list$df)
-  irt<-mirt(dataframe,factors,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #using irt
-  scores<-fscores(irt,method='EAP', full.scores=TRUE,scores.only=TRUE) #EAP estimation method for the scores
-  saved.scores <- fscores(irt, method = 'EAP', full.scores = TRUE, full.scores.SE = TRUE)
-  saved.scores <- data.frame(saved.scores)
-  if(any(is.na(data.frame(dataframe)))){
-    set.seed(seed)
-    fulldataframe<-imputeMissing(irt,scores) #just imputing  the data one time
-    firt<-mirt(fulldataframe,1,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #save imputed dataset
-    m2<-M2(firt)#save M2 statistics
-    coefs<-coef(firt, simplify=TRUE) #save item parameters
-    items<-itemfit(firt,simplify=TRUE) #save item fit statistics
-    output<-list("model" = firt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
-  } else{
-    m2<-M2(irt)#save M2 statistics
-    coefs<-coef(irt, simplify=TRUE) #save item parameters
-    items<-itemfit(irt,simplify=TRUE) #save item fit statistics
-    output<-list("model" = irt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
-  }
-  return(output)
-}
+#irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #dataframe should not include ID #variable
+#  if(apply(dataframe, 1, numNAs) %>% equals(length(dataframe[1,])) %>% any){
+#    print("Warning, some rows removed for being empty")
+#    missing.rows.list <- remove.missing.rows(dataframe)
+#  }
+#  dataframe <- data.frame(missing.rows.list$df)
+#  irt<-mirt(dataframe,factors,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #using irt
+#  scores<-fscores(irt,method='EAP', full.scores=TRUE,scores.only=TRUE) #EAP estimation method for the scores
+#  saved.scores <- fscores(irt, method = 'EAP', full.scores = TRUE, full.scores.SE = TRUE)
+#  saved.scores <- data.frame(saved.scores)
+#  if(any(is.na(data.frame(dataframe)))){
+#    set.seed(seed)
+#    fulldataframe<-imputeMissing(irt,scores) #just imputing  the data one time
+#    firt<-mirt(fulldataframe,1,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #save imputed dataset
+#    m2<-M2(firt)#save M2 statistics
+#    coefs<-coef(firt, simplify=TRUE) #save item parameters
+#    items<-itemfit(firt,simplify=TRUE) #save item fit statistics
+#    output<-list("model" = firt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
+#  } else{
+#    m2<-M2(irt)#save M2 statistics
+#    coefs<-coef(irt, simplify=TRUE) #save item parameters
+#    items<-itemfit(irt,simplify=TRUE) #save item fit statistics
+#    output<-list("model" = irt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
+#  }
+#  return(output)
+#}
 
 ##### Copy dataframe to Excel through clipboard #######
 write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
@@ -447,7 +448,7 @@ fa.CFI<-function(x){
   return(nombre)
 }
 
-### test of skew, I don't think this is right, see Crawley 2012 R book in Zotero and http://www.real-statistics.com/tests-normality-and-symmetry/analysis-skewness-kurtosis/ ####
+###test of skew, I don't think this is right, see Crawley 2012 R book in Zotero and http://www.real-statistics.com/tests-normality-and-symmetry/analysis-skewness-kurtosis/ ####
 #test.skew <- function(x){
 #  x <- x[!is.na(x)]
 #  m3 <- sum((x-mean(x, na.rm = T))^3)/length(x)
