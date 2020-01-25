@@ -66,7 +66,7 @@ varlist <- function (df=NULL,type=c("numeric","factor","character"), pattern=NUL
 ## Can use in conjunction with sapply:
 # sapply(df[,varlist(df,type="numeric",pattern="credit")], summary)
 
-search <- function(x){
+search <- function(x = ''){
   varlist(df, pattern = x)
 }
 
@@ -330,7 +330,7 @@ read.excel <- function(header=TRUE,...) {
   library(magrittr)
   library(Hmisc)
   library(psych)
-  library(mirt)
+  library(jtools)
 }
 
 #### copy dataframe to excel on mac ####
@@ -378,30 +378,6 @@ remove.missing.rows <- function(df){
   }
   list(df = new.df, old.df = df, missing.rows = all.missing.rows)
 }
-
-
-
-###### write .dat file for GGUM #######
-#write.ggum <- function(dataframe, append=FALSE, quote=FALSE, sep="", na="-9", rownames = FALSE, colnames = FALSE, rowCol = NULL, justify = 'right', formatInfo = TRUE, quoteInfo=TRUE, width = 8, eol="\n", qmethod=c("escape", "double"),  scientific=TRUE, ...) {
-#  require(gdata)
-#  new.dataframe <- remove.missing.rows(dataframe)
-#  dataframe <- new.dataframe$df
-#  write.fwf(x = dataframe, file = file.choose(), append = append, quote = quote, sep = sep, na = na, rownames = rownames, colnames = colnames, rowCol = rowCol, justify = justify, formatInfo = formatInfo, quoteInfo=quoteInfo, width = width, eol=eol, qmethod=qmethod,  scientific=scientific, ...)
-#}
-
-write.ggum <- function(dataframe, id.var = 'participant',append=FALSE, quote=FALSE, sep="", na="-9", rownames = FALSE, colnames = FALSE, rowCol = NULL, justify = 'right', formatInfo = TRUE, quoteInfo=TRUE, width = 8, eol="\n", qmethod=c("escape", "double"),  scientific=TRUE, ...) {
-  require(gdata)
-  scale.only <- dataframe[,!names(dataframe) %in% id.var]
-  new.dataframe <- remove.missing.rows(scale.only)
-  if(length(new.dataframe$missing.rows) > 0){
-    data <- data.frame('participant' = dataframe[-c(new.dataframe$missing.rows),id.var], new.dataframe$df)
-  }
-  if(length(new.dataframe$missing.rows) == 0){
-    data <- dataframe
-  }
-  write.fwf(x = data, file = file.choose(), append = append, quote = quote, sep = sep, na = na, rownames = rownames, colnames = colnames, rowCol = rowCol, justify = justify, formatInfo = formatInfo, quoteInfo=quoteInfo, width = width, eol=eol, qmethod=qmethod,  scientific=scientific, ...)
-}
-
 
 ###### read a .csv downloaded from qualtrics ###########
 #found the base of this function online
