@@ -539,3 +539,6 @@ profile_correlation<-function(x){
 #  rownames(ipDF) <- NULL
 #  return(ipDF)
 #}
+
+#### Force a specific number of decimals #####
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
