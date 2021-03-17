@@ -19,6 +19,7 @@ mean.n<-function(df,n){
 #example:varlist(data,pattern="hsns",exclude="5|oj")
 #above example identifies all variable names that include 'hsns' but
 #excludes those that have a 5 or "oj". Pipe key "|" is the "or" operator
+#other operators (i.e,. "&") can also be used.
 varlist <- function (df=NULL,type=c("numeric","factor","character"), pattern=NULL, exclude=NULL, ignore.case=TRUE) {
   vars <- character(0)
   if (any(type %in% "numeric")) {
@@ -76,121 +77,121 @@ search <- function(x = ''){
 #for the most part you can ignore this function because it just feeds into my r_table() function that is below.
 
 cor_table<- function(x,vars=NULL,with=NULL,flag=TRUE,strict=FALSE,round = 2){
-        require(Hmisc,warn.conflicts=TRUE)
-        data<-as.matrix(x)
-        Rmat <- rcorr(data)
-        RmatP <- Rmat$P
-        ComRmat <- round(Rmat$r, 5)
-        originalRmat<-Rmat$r
-        ComRPmat <- round(Rmat$P,3)
-        ComRnmat<- Rmat$n
-
-        if(round == 2){
-                numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.2f", val)) } #remove leading zero function
+  require(Hmisc,warn.conflicts=TRUE)
+  data<-as.matrix(x)
+  Rmat <- rcorr(data)
+  RmatP <- Rmat$P
+  ComRmat <- round(Rmat$r, 5)
+  originalRmat<-Rmat$r
+  ComRPmat <- round(Rmat$P,3)
+  ComRnmat<- Rmat$n
+  
+  if(round == 2){
+    numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.2f", val)) } #remove leading zero function
+  }
+  
+  if(round == 3){
+    numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.3f", val)) } #remove leading zero function
+  }
+  
+  if(round == 4){
+    numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.4f", val)) } #remove leading zero function
+  }
+  
+  if(round == 1){
+    numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.f", val)) } #remove leading zero function
+  }
+  
+  ComRmat<-matrix(numformat(ComRmat),ncol=ncol(ComRmat),nrow=nrow(ComRmat),dimnames = list(rownames(ComRmat),colnames(ComRmat)))
+  
+  #this for statement changes the NAs in the p-value table to 1's
+  #if else statements are in the form of: ifelse(test, yes, no)
+  for(i in 1:nrow(ComRmat)) {
+    for (g in 1:ncol(ComRmat)){
+      ifelse(is.na(ComRPmat[i,g]), ComRPmat[i,g] <- 1, ComRPmat[i,g] <- ComRPmat[i,g])
+    }
+  }
+  
+  ComRmatFin <- matrix(nrow=nrow(Rmat$r), ncol=ncol(Rmat$r)) #makes an empty matrix of correct size
+  
+  if(flag==TRUE){
+    if(strict==FALSE){
+      for(i in 1:nrow(ComRmat)) {
+        for (g in 1:ncol(ComRmat)){
+          ifelse(ComRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '**',sep=""),
+                 ifelse(ComRPmat[i,g] <= .05, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
+                        ifelse(ComRPmat[i,g] <= .1, ComRmatFin[i,g] <- paste(ComRmat[i,g], "'",sep=""),
+                               ifelse(i==g,ComRmatFin[i,g]<-paste('n=',ComRnmat[i,g],sep=""),
+                                      ComRmatFin[i,g] <- ComRmat[i,g]))))
         }
-
-        if(round == 3){
-                numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.3f", val)) } #remove leading zero function
+      }
+    }
+    if(strict==TRUE){
+      for(i in 1:nrow(ComRmat)) {
+        for (g in 1:ncol(ComRmat)){
+          ifelse(ComRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
+                 ifelse(i==g,ComRmatFin[i,g]<-paste('n=',ComRnmat[i,g],sep=""),
+                        ComRmatFin[i,g] <- ComRmat[i,g]))
         }
-
-        if(round == 4){
-                numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.4f", val)) } #remove leading zero function
-        }
-
-        if(round == 1){
-                numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.f", val)) } #remove leading zero function
-        }
-
-        ComRmat<-matrix(numformat(ComRmat),ncol=ncol(ComRmat),nrow=nrow(ComRmat),dimnames = list(rownames(ComRmat),colnames(ComRmat)))
-
-        #this for statement changes the NAs in the p-value table to 1's
-        #if else statements are in the form of: ifelse(test, yes, no)
-        for(i in 1:nrow(ComRmat)) {
-                for (g in 1:ncol(ComRmat)){
-                        ifelse(is.na(ComRPmat[i,g]), ComRPmat[i,g] <- 1, ComRPmat[i,g] <- ComRPmat[i,g])
-                }
-        }
-
-        ComRmatFin <- matrix(nrow=nrow(Rmat$r), ncol=ncol(Rmat$r)) #makes an empty matrix of correct size
-
-        if(flag==TRUE){
-                if(strict==FALSE){
-                        for(i in 1:nrow(ComRmat)) {
-                                for (g in 1:ncol(ComRmat)){
-                                        ifelse(ComRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '**',sep=""),
-                                               ifelse(ComRPmat[i,g] <= .05, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
-                                                      ifelse(ComRPmat[i,g] <= .1, ComRmatFin[i,g] <- paste(ComRmat[i,g], "'",sep=""),
-                                                             ifelse(i==g,ComRmatFin[i,g]<-paste('n=',ComRnmat[i,g],sep=""),
-                                                                    ComRmatFin[i,g] <- ComRmat[i,g]))))
-                                }
-                        }
-                }
-                if(strict==TRUE){
-                        for(i in 1:nrow(ComRmat)) {
-                                for (g in 1:ncol(ComRmat)){
-                                        ifelse(ComRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
-                                               ifelse(i==g,ComRmatFin[i,g]<-paste('n=',ComRnmat[i,g],sep=""),
-                                                      ComRmatFin[i,g] <- ComRmat[i,g]))
-                                }
-                        }
-                }
-        }
-
-        if(flag==FALSE){
-
-                for(i in 1:nrow(ComRmat)) {
-                        for (g in 1:ncol(ComRmat)){
-                                ComRmatFin[i,g] <- ComRmat[i,g]
-                        }
-                }
-        }
-
-        ComRmatFin <- as.data.frame(ComRmatFin,stringsAsFactors=FALSE)
-
-        ComRPmat<-as.data.frame(ComRPmat)
-        ComRnmat<-as.data.frame(ComRnmat)
-        originalRmat<-as.data.frame(originalRmat)
-
-        names(ComRmat)<-colnames(ComRmat)
-        row.names(ComRmat)<-row.names(ComRmat)
-
-        names(originalRmat)<-colnames(ComRmat)
-        row.names(originalRmat)<-row.names(ComRmat)
-
-        names(ComRmatFin) <- colnames(ComRmat)
-        row.names(ComRmatFin) <- row.names(ComRmat)
-
-        names(ComRPmat) <- colnames(ComRmat)
-        row.names(ComRPmat) <- row.names(ComRmat)
-
-        names(ComRnmat) <- colnames(ComRmat)
-        row.names(ComRnmat) <- row.names(ComRmat)
-
-        if(!is.null(vars)&is.null(with)){
-                ComRmatFin<-t(ComRmatFin[vars,colnames(ComRmat)[!colnames(ComRmat)%in%vars],drop=FALSE])
-                ComRPmat<-t(ComRPmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
-                ComRnmat<-t(ComRnmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
-                originalRmat<-t(originalRmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
-                ComRmat<-t(ComRmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
-        }
-        if(is.null(vars)&!is.null(with)){
-                ComRmatFin<-ComRmatFin[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
-                ComRPmat<-ComRPmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
-                ComRnmat<-ComRnmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
-                originalRmat<-originalRmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
-                ComRmat<-ComRmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
-
-        }
-        if(!is.null(vars)&!is.null(with)){
-                ComRmatFin<-ComRmatFin[vars,with,drop=FALSE]
-                ComRPmat<-ComRPmat[vars,with,drop=FALSE]
-                ComRnmat<-ComRnmat[vars,with,drop=FALSE]
-                originalRmat<-originalRmat[vars,with,drop=FALSE]
-                ComRmat<-ComRmat[vars,with,drop=FALSE]
-
-        }
-        list(r_table=ComRmatFin,cors=originalRmat,p_table=ComRPmat,n_table=ComRnmat)
-
+      }
+    }
+  }
+  
+  if(flag==FALSE){
+    
+    for(i in 1:nrow(ComRmat)) {
+      for (g in 1:ncol(ComRmat)){
+        ComRmatFin[i,g] <- ComRmat[i,g]
+      }
+    }
+  }
+  
+  ComRmatFin <- as.data.frame(ComRmatFin,stringsAsFactors=FALSE)
+  
+  ComRPmat<-as.data.frame(ComRPmat)
+  ComRnmat<-as.data.frame(ComRnmat)
+  originalRmat<-as.data.frame(originalRmat)
+  
+  names(ComRmat)<-colnames(ComRmat)
+  row.names(ComRmat)<-row.names(ComRmat)
+  
+  names(originalRmat)<-colnames(ComRmat)
+  row.names(originalRmat)<-row.names(ComRmat)
+  
+  names(ComRmatFin) <- colnames(ComRmat)
+  row.names(ComRmatFin) <- row.names(ComRmat)
+  
+  names(ComRPmat) <- colnames(ComRmat)
+  row.names(ComRPmat) <- row.names(ComRmat)
+  
+  names(ComRnmat) <- colnames(ComRmat)
+  row.names(ComRnmat) <- row.names(ComRmat)
+  
+  if(!is.null(vars)&is.null(with)){
+    ComRmatFin<-t(ComRmatFin[vars,colnames(ComRmat)[!colnames(ComRmat)%in%vars],drop=FALSE])
+    ComRPmat<-t(ComRPmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
+    ComRnmat<-t(ComRnmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
+    originalRmat<-t(originalRmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
+    ComRmat<-t(ComRmat[vars,colnames(ComRmat[!colnames(ComRmat)%in%vars]),drop=FALSE])
+  }
+  if(is.null(vars)&!is.null(with)){
+    ComRmatFin<-ComRmatFin[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
+    ComRPmat<-ComRPmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
+    ComRnmat<-ComRnmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
+    originalRmat<-originalRmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
+    ComRmat<-ComRmat[colnames(ComRmat)[!colnames(ComRmat) %in% with],with,drop=FALSE]
+    
+  }
+  if(!is.null(vars)&!is.null(with)){
+    ComRmatFin<-ComRmatFin[vars,with,drop=FALSE]
+    ComRPmat<-ComRPmat[vars,with,drop=FALSE]
+    ComRnmat<-ComRnmat[vars,with,drop=FALSE]
+    originalRmat<-originalRmat[vars,with,drop=FALSE]
+    ComRmat<-ComRmat[vars,with,drop=FALSE]
+    
+  }
+  list(r_table=ComRmatFin,cors=originalRmat,p_table=ComRPmat,n_table=ComRnmat)
+  
 }
 
 
@@ -227,7 +228,7 @@ r_table<- function(x, #data frame that can be coerced to a matrix
                    flag=TRUE, #flag significance
                    strict=FALSE, #If TRUE, it will use .01 cutoff for significance
                    round = 2,...) #how many decimal places to round to when printing
-        UseMethod("r_table")
+  UseMethod("r_table")
 
 r_table.default<-function(x, #data frame that can be coerced to a matrix
                           vars=NULL, #select the variables to be used
@@ -235,22 +236,22 @@ r_table.default<-function(x, #data frame that can be coerced to a matrix
                           flag=TRUE, #flag significance
                           strict=FALSE, #If TRUE, it will use .01 cutoff for significance
                           round = 2,...) #how many decimal places to round to
-                          {
-        r_table<-cor_table(x,vars=vars,with=with,flag=flag,strict=strict,round=round)
-        class(r_table)<-"r_table"
-        r_table
+{
+  r_table<-cor_table(x,vars=vars,with=with,flag=flag,strict=strict,round=round)
+  class(r_table)<-"r_table"
+  r_table
 }
 
 print.r_table<-function(x,...){         #removed p-values table from print.r_table
-        cat("Correlation Table:\n\n")
-        print(x$r_table)
-        cat("\nIf strict = FALSE: .01 **; .05 *\nIf strict = TRUE: .01 *\n")
+  cat("Correlation Table:\n\n")
+  print(x$r_table)
+  cat("\nIf strict = FALSE: .01 **; .05 *\nIf strict = TRUE: .01 *\n")
 }
 
 summary.r_table<-function(x,...){
-        cat("Correlation Table:\n\n")
-        print(x$r_table)
-        cat("\nIf strict = FALSE: .01 **; .05 *\nIf strict = TRUE: .01 *\n")
+  cat("Correlation Table:\n\n")
+  print(x$r_table)
+  cat("\nIf strict = FALSE: .01 **; .05 *\nIf strict = TRUE: .01 *\n")
 }
 
 #### Number Format ####
@@ -260,40 +261,39 @@ summary.r_table<-function(x,...){
 numformat <- function(val) { sub("^(-?)0.", "\\1.", sprintf("%.2f", val)) } #remove leading zero
 
 #### NAs per row ####
-#quick function that I load into all of my projects were identifying the number of NAs in a row
+#Identify the number of NAs in a row
 numNAs<-function(x){
   sum(is.na(x))
 }
 
 #### IRT function ####
-#Not regularly used
 
-#irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #dataframe should not include ID #variable
-#  if(apply(dataframe, 1, numNAs) %>% equals(length(dataframe[1,])) %>% any){
-#    print("Warning, some rows removed for being empty")
-#    missing.rows.list <- remove.missing.rows(dataframe)
-#  }
-#  dataframe <- data.frame(missing.rows.list$df)
-#  irt<-mirt(dataframe,factors,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #using irt
-#  scores<-fscores(irt,method='EAP', full.scores=TRUE,scores.only=TRUE) #EAP estimation method for the scores
-#  saved.scores <- fscores(irt, method = 'EAP', full.scores = TRUE, full.scores.SE = TRUE)
-#  saved.scores <- data.frame(saved.scores)
-#  if(any(is.na(data.frame(dataframe)))){
-#    set.seed(seed)
-#    fulldataframe<-imputeMissing(irt,scores) #just imputing  the data one time
-#    firt<-mirt(fulldataframe,1,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #save imputed dataset
-#    m2<-M2(firt)#save M2 statistics
-#    coefs<-coef(firt, simplify=TRUE) #save item parameters
-#    items<-itemfit(firt,simplify=TRUE) #save item fit statistics
-#    output<-list("model" = firt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
-#  } else{
-#    m2<-M2(irt)#save M2 statistics
-#    coefs<-coef(irt, simplify=TRUE) #save item parameters
-#    items<-itemfit(irt,simplify=TRUE) #save item fit statistics
-#    output<-list("model" = irt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
-#  }
-#  return(output)
-#}
+irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #dataframe should not include ID variable
+  if(apply(dataframe, 1, numNAs) %>% equals(length(dataframe[1,])) %>% any){
+    print("Warning, some rows removed for being empty")
+    missing.rows.list <- remove.missing.rows(dataframe)
+  }
+  dataframe <- data.frame(missing.rows.list$df)
+  irt<-mirt(dataframe,factors,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #using irt
+  scores<-fscores(irt,method='EAP', full.scores=TRUE,scores.only=TRUE) #EAP estimation method for the scores
+  saved.scores <- fscores(irt, method = 'EAP', full.scores = TRUE, full.scores.SE = TRUE)
+  saved.scores <- data.frame(saved.scores)
+  if(any(is.na(data.frame(dataframe)))){
+    set.seed(seed)
+    fulldataframe<-imputeMissing(irt,scores) #just imputing  the data one time
+    firt<-mirt(fulldataframe,1,itemtype = irt.model, technical = list(removeEmptyRows = TRUE)) #save imputed dataset
+    m2<-M2(firt)#save M2 statistics
+    coefs<-coef(firt, simplify=TRUE) #save item parameters
+    items<-itemfit(firt,simplify=TRUE) #save item fit statistics
+    output<-list("model" = firt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
+  } else{
+    m2<-M2(irt)#save M2 statistics
+    coefs<-coef(irt, simplify=TRUE) #save item parameters
+    items<-itemfit(irt,simplify=TRUE) #save item fit statistics
+    output<-list("model" = irt, "m2" = m2, "scores" = saved.scores, 'coefs' = coefs, 'itemfit' = items)
+  }
+  return(output)
+}
 
 ##### Copy dataframe to Excel through clipboard #######
 write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
@@ -330,6 +330,7 @@ read.excel <- function(header=TRUE,...) {
   library(magrittr)
   library(Hmisc)
   library(psych)
+  library(mirt)
   library(jtools)
 }
 
@@ -379,6 +380,69 @@ remove.missing.rows <- function(df){
   list(df = new.df, old.df = df, missing.rows = all.missing.rows)
 }
 
+#### Paste IRT results into Modfit program - needs to be modified ####
+# I think we need to divide by the constant
+
+paste.modfit <- function(data, model.results){
+  cat('\n','Recoding data','\n')
+  min <- min(data, na.rm = T)
+  if(min != 0){
+    data <- data - min
+    cat('\n','Response values must start at 0','\n')
+    cat('\n','Subtracted ',min,' from data','\n')
+    cat('\n','Current minimum','\n')
+    print(apply(data, 2, min))
+    cat('\n','Current maximum','\n')
+    print(apply(data, 2, max))
+  }
+  if(numNAs(data)>0){
+    all.missing.rows <- which(apply(data,1,numNAs) == length(data))
+    if(length(all.missing.rows) > 0){
+      data <- remove.missing.rows(data)
+      data <- data$df
+    }
+    cat('\n','Recoded ',numNAs(data), ' missing data points to 9','\n')
+    data[is.na(data)] <- 9
+  }
+  cat('\n','Number of items: ', length(data),'\n')
+  cat('\n','Number of persons: ', nrow(data),'\n')
+  coefs <- coef(model.results, simplify=TRUE, IRTpars = T)
+  coefs$items[,'a'] <- coefs$items[,'a']/1.702
+  write.excel(coefs$items, row.names = F, col.names = F)
+  cat("\n","\bPaste item parameters","\n")
+  cat("\n","\bCoef a divided by constant 1.702","\n")
+  cat("\n","\bEnter 1 when complete","\n")
+  continue <- scan(n=1, what = numeric(0), quiet = T)
+  if(continue == 1){
+    write.excel(data, row.names = F, col.names = F)
+    cat("\n","\bPaste item responses","\n")
+  }
+}
+
+
+###### write .dat file for GGUM #######
+# This function isn't really necessary anymore now that GGUM is in the R IRT package
+#write.ggum <- function(dataframe, append=FALSE, quote=FALSE, sep="", na="-9", rownames = FALSE, colnames = FALSE, rowCol = NULL, justify = 'right', formatInfo = TRUE, quoteInfo=TRUE, width = 8, eol="\n", qmethod=c("escape", "double"),  scientific=TRUE, ...) {
+#  require(gdata)
+#  new.dataframe <- remove.missing.rows(dataframe)
+#  dataframe <- new.dataframe$df
+#  write.fwf(x = dataframe, file = file.choose(), append = append, quote = quote, sep = sep, na = na, rownames = rownames, colnames = colnames, rowCol = rowCol, justify = justify, formatInfo = formatInfo, quoteInfo=quoteInfo, width = width, eol=eol, qmethod=qmethod,  scientific=scientific, ...)
+#}
+
+write.ggum <- function(dataframe, id.var = 'participant',append=FALSE, quote=FALSE, sep="", na="-9", rownames = FALSE, colnames = FALSE, rowCol = NULL, justify = 'right', formatInfo = TRUE, quoteInfo=TRUE, width = 8, eol="\n", qmethod=c("escape", "double"),  scientific=TRUE, ...) {
+  require(gdata)
+  scale.only <- dataframe[,!names(dataframe) %in% id.var]
+  new.dataframe <- remove.missing.rows(scale.only)
+  if(length(new.dataframe$missing.rows) > 0){
+    data <- data.frame('participant' = dataframe[-c(new.dataframe$missing.rows),id.var], new.dataframe$df)
+  }
+  if(length(new.dataframe$missing.rows) == 0){
+    data <- dataframe
+  }
+  write.fwf(x = data, file = file.choose(), append = append, quote = quote, sep = sep, na = na, rownames = rownames, colnames = colnames, rowCol = rowCol, justify = justify, formatInfo = formatInfo, quoteInfo=quoteInfo, width = width, eol=eol, qmethod=qmethod,  scientific=scientific, ...)
+}
+
+
 ###### read a .csv downloaded from qualtrics ###########
 #found the base of this function online
 
@@ -424,7 +488,7 @@ fa.CFI<-function(x){
   return(nombre)
 }
 
-###test of skew, I don't think this is right, see Crawley 2012 R book in Zotero and http://www.real-statistics.com/tests-normality-and-symmetry/analysis-skewness-kurtosis/ ####
+### test of skew, I don't think this is right, see Crawley 2012 R book in Zotero and http://www.real-statistics.com/tests-normality-and-symmetry/analysis-skewness-kurtosis/ ####
 #test.skew <- function(x){
 #  x <- x[!is.na(x)]
 #  m3 <- sum((x-mean(x, na.rm = T))^3)/length(x)
@@ -469,7 +533,7 @@ fa.CFI<-function(x){
 #}
 
 
-#also don't know if attempt would work in a supply loop was it was intented to be used - see other example below:
+#also don't know if attempt would work in a supply loop as it was intented to be used - see other example below:
 
 #f3comps<-data.frame(
 #  'AEvN' = sapply(names(outcomesdf[1:6]),function(x){
@@ -540,5 +604,186 @@ profile_correlation<-function(x){
 #  return(ipDF)
 #}
 
-#### Force a specific number of decimals #####
-specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+### Example code for recoding variable names using find and replace #####
+# https://dplyr.tidyverse.org/reference/rename.html - more examples of below renaming function
+#df <- rename_with(df, ~ gsub('_','',.x, fixed = T), #rename using a function, replace "_" with ""
+#                  starts_with('srp'), ends_with('_r')) #select the variables to apply the function to.
+
+### Example code for renaming variables inside a pipe chain ####
+# [dataframe/matrix] %>% 'colnames<-'(character.vector.of.names)
+
+#### trim leading and trailing spaces from character vectors ######
+trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+
+#### Paste IRT results into Modfit program - needs to be modified ####
+# Example of function that takes input in console
+# I think we need to divide by the constant
+
+paste.modfit <- function(data, model.results){
+  cat('\n','Recoding data','\n')
+  min <- min(data, na.rm = T)
+  if(min != 0){
+    data <- data - min
+    cat('\n','Response values must start at 0','\n')
+    cat('\n','Subtracted ',min,' from data','\n')
+    cat('\n','Current minimum','\n')
+    print(apply(data, 2, min))
+    cat('\n','Current maximum','\n')
+    print(apply(data, 2, max))
+  }
+  if(numNAs(data)>0){
+    all.missing.rows <- which(apply(data,1,numNAs) == length(data))
+    if(length(all.missing.rows) > 0){
+      data <- remove.missing.rows(data)
+      data <- data$df
+    }
+    cat('\n','Recoded ',numNAs(data), ' missing data points to 9','\n')
+    data[is.na(data)] <- 9
+  }
+  cat('\n','Number of items: ', length(data),'\n')
+  cat('\n','Number of persons: ', nrow(data),'\n')
+  coefs <- coef(model.results, simplify=TRUE, IRTpars = T)
+  coefs$items[,'a'] <- coefs$items[,'a']/1.702
+  write.excel(coefs$items, row.names = F, col.names = F)
+  cat("\n","\bPaste item parameters","\n")
+  cat("\n","\bCoef a divided by constant 1.702","\n")
+  cat("\n","\bEnter 1 when complete","\n")
+  continue <- scan(n=1, what = numeric(0), quiet = T)
+  if(continue == 1){
+    write.excel(data, row.names = F, col.names = F)
+    cat("\n","\bPaste item responses","\n")
+  }
+}
+
+### Bass-ackward Syntax ####
+factor.analyses <- function(df, max.factors = 9, ...){ #can pass other inputs (i.e., rotation, estimation method) to fa function
+  lapply(1:max.factors,function(x, df, ...){
+    fa(r = df, nfactors = x, ...)
+  }, df, ...)
+}
+
+extract.structures <- function(fa.list){
+  structure.list <- lapply(fa.list, function(x){unclass(x$Structure)})
+  structure.dat <- do.call(data.frame, structure.list)
+  suffix <- lapply(structure.list, colnames) %>% do.call(c, .)
+  prefix <- lapply(1:length(fa.list),function(x){
+    paste0('fa',x) %>% rep(x)
+  }) %>% do.call(c,.)
+  names <- paste0(prefix,suffix)
+  names(structure.dat) <- names
+  structure.dat <- structure.dat[,c(order(names(structure.dat)))]
+  f.suffix <- lapply(1:length(fa.list), function(x){
+    1:x
+  }) %>% do.call(c, .)
+  f.prefix <- lapply(1:length(fa.list),function(x){
+    rep(x,x)
+  }) %>% do.call(c,.)
+  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  names(structure.dat) <- f.names
+  return(structure.dat)
+}
+
+extract.loadings <- function(fa.list){
+  loadings.list <- lapply(fa.list, function(x){unclass(x$loadings)})
+  loadings.dat <- do.call(data.frame, loadings.list)
+  suffix <- lapply(loadings.list, colnames) %>% do.call(c, .)
+  prefix <- lapply(1:length(fa.list),function(x){
+    paste0('fa',x) %>% rep(x)
+  }) %>% do.call(c,.)
+  names <- paste0(prefix,suffix)
+  names(loadings.dat) <- names
+  loadings.dat <- loadings.dat[,c(order(names(loadings.dat)))]
+  f.suffix <- lapply(1:length(fa.list), function(x){
+    1:x
+  }) %>% do.call(c, .)
+  f.prefix <- lapply(1:length(fa.list),function(x){
+    rep(x,x)
+  }) %>% do.call(c,.)
+  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  names(loadings.dat) <- f.names
+  return(loadings.dat)
+}
+
+extract.vaccounted <- function(fa.list){
+  vec <- lapply(fa.list, function(x){x$Vaccounted['Proportion Var',] %>% sum()}) %>%
+    do.call(rbind, .)
+  return(data.frame('Vaccounted' = vec))
+}
+
+extract.scores <- function(fa.list){
+  scores.list <- lapply(fa.list, function(x){x$scores})
+  scores.dat <- do.call(data.frame, scores.list)
+  suffix <- lapply(scores.list, colnames) %>% do.call(c, .)
+  prefix <- lapply(1:length(fa.list),function(x){
+    paste0('fa',x) %>% rep(x)
+  }) %>% do.call(c,.)
+  names <- paste0(prefix,suffix)
+  names(scores.dat) <- names
+  scores.dat <- scores.dat[,c(order(names(scores.dat)))]
+  f.suffix <- lapply(1:length(fa.list), function(x){
+    1:x
+  }) %>% do.call(c, .)
+  f.prefix <- lapply(1:length(fa.list),function(x){
+    rep(x,x)
+  }) %>% do.call(c,.)
+  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  names(scores.dat) <- f.names
+  return(scores.dat)
+}
+
+#Can pull specific parts of EFA output using sapply
+#sapply(fa.list, function(x){x$RMSEA})
+
+### Would love to add HTML tabling function #####
+# See below for possible resources
+# https://www.htmlwidgets.org/showcase_datatables.html
+# https://rstudio.github.io/DT/
+
+### Percent of Missing data #####
+# identify percent of missing data for each variable
+p.missing <- function(df, sort = F){
+  p <- unlist(lapply(df, function(x) sum(is.na(x))))/nrow(df)
+  if(sort == T){
+    p.missing <- sort(p, decreasing = T)
+  } else{
+    p.missing <- p
+  }
+  return(p.missing)
+}
+
+### Parallel Analysis with 95th %ile of Simulated Data ######
+# Need to convert to a function
+#set.seed(123)
+#parallel.analysis <- fa.parallel(p.df, fm = 'pa', fa = 'both', n.iter = 1000, plot = F) #14 components
+#
+#data.frame('Factors' = (1:20),
+#           'Eigenvalues' = parallel.analysis$pc.values[1:20],
+#           'Sim_avg' = parallel.analysis$pc.sim[1:20],
+#           'Sim_95' = (parallel.analysis$values %>%
+#                         data.frame %>%
+#                         select(CSim1:CSim20) %>%
+#                         sapply(function(x){
+#                           quantile(x, .95)
+#                         })),
+#           'one' = rep(1,20))  %>% write.excel(row.names = F, col.names = F)
+
+#### Save and install list of R packages ######
+# don't need to use this if packages are stored in a user library
+## Save list of R packages
+#tmp = installed.packages()
+#installedpackages = as.vector(tmp[is.na(tmp[,"Priority"]), 1])
+#save(installedpackages, file="~/installed_packages.rda") # installs under this pc, documents folder
+
+## Install R packages from list
+#load("~/installed_packages.rda")
+#
+#for (count in 1:length(installedpackages)) {
+#  install.packages(installedpackages[count])
+#}
+
+
+### Example code for programatically making new variables with standard name #####
+#Line of code selects variables and makes new recoded variables with the suffix “binary”
+#Tractsbin <- tracts %>%  mutate_at(vars(num_range("NSI_",1:4), num_range("NSI_",6:10),num_range("NSI_",12:22)), .funs = funs(binary = car::recode(., "0:1 = 0; 2:4 = 1"))) %>%  
+#  mutate_at(vars(PCL1,PCL11,PCL17), .funs = funs(binary = car::recode(., "1:2 = 0; 3:5 = 1")))
+
