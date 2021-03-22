@@ -688,7 +688,7 @@ extract.loadings <- function(fa.list){
     data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
   })
   loadings.list <- lapply(1:length(loadings.list), function(x){
-    scores.list[[x]] <- scores.list[[x]][,c(order.list[[x]])]
+    loadings.list[[x]] <- loadings.list[[x]][,c(order.list[[x]])]
   })
   loadings.dat <- do.call(data.frame, loadings.list)
   suffix <- lapply(1:length(fa.list), function(x){
@@ -701,7 +701,7 @@ extract.loadings <- function(fa.list){
   names(loadings.dat) <- f.names
   return(loadings.dat)
 }
-
+                    
 extract.vaccounted <- function(fa.list){
   vaccounted.list <- lapply(fa.list, function(x){unclass(x$Vaccounted)})
   vaccounted.list[[1]] <- rbind(vaccounted.list[[1]], 'Cumulative Var' = vaccounted.list[[1]][2,], 'Proportion Explained' = 1, 'Cumulative Proportion' = 1)
