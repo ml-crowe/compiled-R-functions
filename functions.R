@@ -663,7 +663,7 @@ factor.analyses <- function(df, max.factors = 9, ...){ #can pass other inputs (i
 }
 
 extract.structures <- function(fa.list){
-  structure.list <- lapply(fa.list, function(x){x$Structure})
+  structure.list <- lapply(fa.list, function(x){unclass(x$Structure)})
   order.list <- lapply(structure.list, function(x){
     data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
   })
