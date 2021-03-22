@@ -663,43 +663,41 @@ factor.analyses <- function(df, max.factors = 9, ...){ #can pass other inputs (i
 }
 
 extract.structures <- function(fa.list){
-  structure.list <- lapply(fa.list, function(x){unclass(x$Structure)})
+  structure.list <- lapply(fa.list, function(x){x$Structure})
+  order.list <- lapply(structure.list, function(x){
+    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+  })
+  structure.list <- lapply(1:length(structure.list), function(x){
+    structure.list[[x]] <- structure.list[[x]][,c(order.list[[x]])]
+  })
   structure.dat <- do.call(data.frame, structure.list)
-  suffix <- lapply(structure.list, colnames) %>% do.call(c, .)
-  prefix <- lapply(1:length(fa.list),function(x){
-    paste0('fa',x) %>% rep(x)
-  }) %>% do.call(c,.)
-  names <- paste0(prefix,suffix)
-  names(structure.dat) <- names
-  structure.dat <- structure.dat[,c(order(names(structure.dat)))]
-  f.suffix <- lapply(1:length(fa.list), function(x){
+  suffix <- lapply(1:length(fa.list), function(x){
     1:x
   }) %>% do.call(c, .)
-  f.prefix <- lapply(1:length(fa.list),function(x){
+  prefix <- lapply(1:length(fa.list),function(x){
     rep(x,x)
   }) %>% do.call(c,.)
-  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  f.names <- paste0('F',prefix,'.',suffix)
   names(structure.dat) <- f.names
   return(structure.dat)
 }
 
 extract.loadings <- function(fa.list){
   loadings.list <- lapply(fa.list, function(x){unclass(x$loadings)})
+  order.list <- lapply(loadings.list, function(x){
+    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+  })
+  loadings.list <- lapply(1:length(loadings.list), function(x){
+    scores.list[[x]] <- scores.list[[x]][,c(order.list[[x]])]
+  })
   loadings.dat <- do.call(data.frame, loadings.list)
-  suffix <- lapply(loadings.list, colnames) %>% do.call(c, .)
-  prefix <- lapply(1:length(fa.list),function(x){
-    paste0('fa',x) %>% rep(x)
-  }) %>% do.call(c,.)
-  names <- paste0(prefix,suffix)
-  names(loadings.dat) <- names
-  loadings.dat <- loadings.dat[,c(order(names(loadings.dat)))]
-  f.suffix <- lapply(1:length(fa.list), function(x){
+  suffix <- lapply(1:length(fa.list), function(x){
     1:x
   }) %>% do.call(c, .)
-  f.prefix <- lapply(1:length(fa.list),function(x){
+  prefix <- lapply(1:length(fa.list),function(x){
     rep(x,x)
   }) %>% do.call(c,.)
-  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  f.names <- paste0('F',prefix,'.',suffix)
   names(loadings.dat) <- f.names
   return(loadings.dat)
 }
@@ -707,21 +705,21 @@ extract.loadings <- function(fa.list){
 extract.vaccounted <- function(fa.list){
   vaccounted.list <- lapply(fa.list, function(x){unclass(x$Vaccounted)})
   vaccounted.list[[1]] <- rbind(vaccounted.list[[1]], 'Cumulative Var' = vaccounted.list[[1]][2,], 'Proportion Explained' = 1, 'Cumulative Proportion' = 1)
+  order.list <- lapply(vaccounted.list, function(x){
+    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+  })
+  vaccounted.list <- lapply(1:length(vaccounted.list), function(x){
+    vaccounted.list[[x]] <- vaccounted.list[[x]][,c(order.list[[x]])]
+  })
+  
   vaccounted.dat <- do.call(data.frame, vaccounted.list)
-  suffix <- lapply(vaccounted.list, colnames) %>% do.call(c, .)
-  prefix <- lapply(1:length(fa.list),function(x){
-    paste0('fa',x) %>% rep(x)
-  }) %>% do.call(c,.)
-  names <- paste0(prefix,suffix)
-  names(vaccounted.dat) <- names
-  vaccounted.dat <- vaccounted.dat[,c(order(names(vaccounted.dat)))]
-  f.suffix <- lapply(1:length(fa.list), function(x){
+  suffix <- lapply(1:length(fa.list), function(x){
     1:x
   }) %>% do.call(c, .)
-  f.prefix <- lapply(1:length(fa.list),function(x){
+  prefix <- lapply(1:length(fa.list),function(x){
     rep(x,x)
   }) %>% do.call(c,.)
-  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  f.names <- paste0('F',prefix,'.',suffix)
   names(vaccounted.dat) <- f.names
   
   vec <- lapply(fa.list, function(x){x$Vaccounted['Proportion Var',] %>% sum()}) %>%
@@ -739,21 +737,20 @@ extract.vaccounted <- function(fa.list){
 
 extract.scores <- function(fa.list){
   scores.list <- lapply(fa.list, function(x){x$scores})
+  order.list <- lapply(scores.list, function(x){
+    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+  })
+  scores.list <- lapply(1:length(scores.list), function(x){
+    scores.list[[x]] <- scores.list[[x]][,c(order.list[[x]])]
+  })
   scores.dat <- do.call(data.frame, scores.list)
-  suffix <- lapply(scores.list, colnames) %>% do.call(c, .)
-  prefix <- lapply(1:length(fa.list),function(x){
-    paste0('fa',x) %>% rep(x)
-  }) %>% do.call(c,.)
-  names <- paste0(prefix,suffix)
-  names(scores.dat) <- names
-  scores.dat <- scores.dat[,c(order(names(scores.dat)))]
-  f.suffix <- lapply(1:length(fa.list), function(x){
+  suffix <- lapply(1:length(fa.list), function(x){
     1:x
   }) %>% do.call(c, .)
-  f.prefix <- lapply(1:length(fa.list),function(x){
+  prefix <- lapply(1:length(fa.list),function(x){
     rep(x,x)
   }) %>% do.call(c,.)
-  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  f.names <- paste0('F',prefix,'.',suffix)
   names(scores.dat) <- f.names
   return(scores.dat)
 }
