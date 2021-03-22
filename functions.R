@@ -705,10 +705,37 @@ extract.loadings <- function(fa.list){
 }
 
 extract.vaccounted <- function(fa.list){
+  vaccounted.list <- lapply(fa.list, function(x){unclass(x$Vaccounted)})
+  vaccounted.list[[1]] <- rbind(vaccounted.list[[1]], 'Cumulative Var' = vaccounted.list[[1]][2,], 'Proportion Explained' = 1, 'Cumulative Proportion' = 1)
+  vaccounted.dat <- do.call(data.frame, vaccounted.list)
+  suffix <- lapply(vaccounted.list, colnames) %>% do.call(c, .)
+  prefix <- lapply(1:length(fa.list),function(x){
+    paste0('fa',x) %>% rep(x)
+  }) %>% do.call(c,.)
+  names <- paste0(prefix,suffix)
+  names(vaccounted.dat) <- names
+  vaccounted.dat <- vaccounted.dat[,c(order(names(vaccounted.dat)))]
+  f.suffix <- lapply(1:length(fa.list), function(x){
+    1:x
+  }) %>% do.call(c, .)
+  f.prefix <- lapply(1:length(fa.list),function(x){
+    rep(x,x)
+  }) %>% do.call(c,.)
+  f.names <- paste0('F',f.prefix,'.',f.suffix)
+  names(vaccounted.dat) <- f.names
+  
   vec <- lapply(fa.list, function(x){x$Vaccounted['Proportion Var',] %>% sum()}) %>%
     do.call(rbind, .)
-  return(data.frame('Vaccounted' = vec))
+  
+  v.list <- list('Vac' = data.frame('Vaccounted' = vec), 'full' = vaccounted.dat)
+  return(v.list)
 }
+
+#extract.vaccounted <- function(fa.list){
+#  vec <- lapply(fa.list, function(x){x$Vaccounted['Proportion Var',] %>% sum()}) %>%
+#    do.call(rbind, .)
+#  return(data.frame('Vaccounted' = vec))
+#}
 
 extract.scores <- function(fa.list){
   scores.list <- lapply(fa.list, function(x){x$scores})
@@ -787,3 +814,135 @@ p.missing <- function(df, sort = F){
 #Tractsbin <- tracts %>%  mutate_at(vars(num_range("NSI_",1:4), num_range("NSI_",6:10),num_range("NSI_",12:22)), .funs = funs(binary = car::recode(., "0:1 = 0; 2:4 = 1"))) %>%  
 #  mutate_at(vars(PCL1,PCL11,PCL17), .funs = funs(binary = car::recode(., "1:2 = 0; 3:5 = 1")))
 
+#### Calculate Mode from vector #####
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+#### Force a specific number of decimals #####
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+#### Attempts at generating figure from Bass-ackward results #####
+# ___c. Attempt 3 #####
+# Bass-ackward list is clps.bass
+clps.bass[[3]]$Vaccounted
+extract.vaccounted(clps.bass)
+
+
+scores.cor <- extract.scores(clps.bass) %>% cor(use = 'pairwise')
+scores.cor
+
+from <- c(rep(1,2), rep(2,3), rep(3,3))
+to <- c(rep(c(2:3),1), rep(c(4:6),2))
+edges <- tibble(from, to)
+label <- c()
+for(i in 1:8){
+  label <- c(label,
+             scores.cor[edges$to[i], edges$from[i]])
+}
+
+grViz('
+  digraph bass{
+# node defintions
+
+node[fontname = Times, shape = rectangle];
+#n0 [label = "Total Variance"; fixedsize = T; width = "@@12"] #
+n1 [label = "@@1"] #; fixedsize = T; width = "@@13"
+n2 [label = "@@2"] #; fixedsize = T; width = "@@14"
+n3 [label = "@@3"] #; fixedsize = T; width = "@@15"
+n4 [label = "@@4"] #; fixedsize = T; width = "@@16"
+n5 [label = "@@5"] #; fixedsize = T; width = "@@17"
+n6 [label = "@@6"] #; fixedsize = T; width = "@@18"
+
+subgraph cluster1
+   {
+       style = invis;
+       n1;
+   }
+
+subgraph cluster2
+   {
+       style = invis;
+       n2; n3;
+   }
+
+subgraph cluster23
+   {
+       style = invis;
+       n4; n5; n6;
+   }
+
+n1 -> n2 [label = "@@7"]
+n1 -> n3 [label = "@@8"]
+n2 -> n4 [label = "@@9"]
+n2 -> n6 [label = "@@10"]
+n3 -> n5 [label = "@@11"]
+#n3 -> n6 [label = "@@12"]
+  }
+
+[1]: names(extract.loadings(clps.bass)[1])
+[2]: names(extract.loadings(clps.bass)[2])
+[3]: names(extract.loadings(clps.bass)[3])
+[4]: names(extract.loadings(clps.bass)[4])
+[5]: names(extract.loadings(clps.bass)[5])
+[6]: names(extract.loadings(clps.bass)[6])
+[7]: round(label[1],2)
+[8]: round(label[2],2)
+[9]: round(label[3],2)
+[10]: round(label[5],2)
+[11]: round(label[7],2)
+')
+
+# ___d. Attempt 4 ######
+library(Gmisc)
+library(glue)
+library(htmlTable)
+library(grid)
+library(magrittr)
+
+clps.bass[[3]]$Vaccounted
+vacc <- extract.vaccounted(clps.bass)[[2]]
+
+
+scores.cor <- extract.scores(clps.bass) %>% cor(use = 'pairwise')
+scores.cor
+
+from <- c(rep(1,2), rep(2,3), rep(3,3))
+to <- c(rep(c(2:3),1), rep(c(4:6),2))
+edges <- tibble(from, to)
+label <- c()
+for(i in 1:8){
+  label <- c(label,
+             scores.cor[edges$to[i], edges$from[i]])
+}
+
+grid.newpage()
+
+vert <- spreadVertical(
+  'one' = boxGrob('one'),
+  'two' = boxGrob('two'),
+  'three' = boxGrob('three'),
+  .from = .025,
+  .to = .90
+)
+
+bot <- spreadHorizontal(
+  '1' = boxGrob("F3.1", width = vacc$F3.1[2], height = .05, y = coords(vert$one)$y),
+  '3' = boxGrob("F3.3", width = vacc$F3.3[2], height = .05, y = coords(vert$one)$y),
+  '2' = boxGrob("F3.2", width = vacc$F3.2[2], height = .05, y = coords(vert$one)$y),
+  .from = .025,
+  .to = .975
+)
+
+boxGrob("Total Variance", width = 1, height = .05, y = .975)
+bot
+
+f2.1 <- boxGrob("F2.1", width = vacc$F2.1[2], height = .05, y = coords(vert$two)$y, x = (coords(bot$`1`)$x+coords(bot$`3`)$x)/2)
+f2.2 <- boxGrob("F2.2", width = vacc$F2.2[2], height = .05, y = coords(vert$two)$y, x = coords(bot$`2`)$x)
+f2.1
+f2.2
+
+boxGrob("F1.1", width = vacc$F1.1[2], height = .05, y = coords(vert$three)$y, x = (coords(f2.1)$x + coords(f2.2)$x)/2)
+
+# can't figure out how to label a connection
