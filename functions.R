@@ -655,6 +655,124 @@ paste.modfit <- function(data, model.results){
   }
 }
 
+#### Duplicate Item Removal #####
+make.dat_cors <- function(full.df, cut, cor){
+  if(cor == 'cor'){
+    dat_cors <- r_table(full.df)$cors %>% as.matrix
+  }
+  if(cor == 'tet'){
+    dat_cors <- tetrachoric(clinical.df)$rho
+  }
+  dat_cors[upper.tri(dat_cors, diag = TRUE)] <- NA
+  dat_cors <- data.frame(dat_cors)
+  dat_cors[,
+           sapply(dat_cors,function(x){which(x>= cut)}, simplify = TRUE) %>%
+             sapply(length) %>%
+             equals(0) %>%
+             which() %>%
+             names %>% c()
+  ] <- NULL
+  return(dat_cors)
+}
+
+
+
+overlap.var.list <- function(dat_cors, cut){
+  #var.list <- sapply(dat_cors,function(x){which(x>= cut)}, simplify = TRUE)
+  var.list <- lapply(dat_cors,function(x){which(x>= cut)})
+  return(var.list)
+}
+
+#overlap.named.var.list <- function(dat_cors, var.list){
+#  vars.with.overlap<-list()
+#  for(i in 1:length(var.list)){
+#    vars.with.overlap[[i]]<-row.names(dat_cors[var.list[[i]],])
+#  }
+#  names(vars.with.overlap)<-names(var.list)
+#  return(vars.with.overlap)
+#}
+
+overlap.named.var.list <- function(dat_cors, var.list){
+  vars.with.overlap<-list()
+  if(length(var.list) == 1){
+    vars.with.overlap[[1]]<-row.names(dat_cors)[var.list[[1]]]
+  } else{
+    for(i in 1:length(var.list)){
+      vars.with.overlap[[i]]<-row.names(dat_cors[var.list[[i]],])
+    }
+  }
+  names(vars.with.overlap)<-names(var.list)
+  return(vars.with.overlap)
+}
+
+make.cors_df <- function(full.df, cut, item.content = NULL, cor = 'cor'){
+  dat_cors <- make.dat_cors(full.df, cut, cor)
+  var.list <- overlap.var.list(dat_cors, cut)
+  if(length(var.list) == 0){
+    cat('No correlations greater than or equal to ', cut)
+  }
+  if(length(var.list) > 0){
+    named.var.list <- overlap.named.var.list(dat_cors, var.list)
+    overlapping.vars<-data.frame('var1' = rep(names(named.var.list),c(sapply(named.var.list,length))),'var2' = unlist(named.var.list))
+    char.overlapping.vars <- data.frame('var1' = as.character(overlapping.vars[[1]]), 'var2' = as.character(overlapping.vars[[2]]), stringsAsFactors = FALSE)
+    overlapping.vars$var1_num <- rep(which(names(full.df) %in% names(var.list)),c(sapply(var.list,length)))
+    overlapping.vars$var2_num <- unlist(var.list)
+    overlapping.vars$r <- NA
+    for(i in 1:length(overlapping.vars[[1]])){
+      overlapping.vars$r[i]<-dat_cors[char.overlapping.vars[i,2],char.overlapping.vars[i,1]]
+    }
+    if(!is.null(item.content)){
+      item.content$var1 <- item.content[,1]
+      item.content$var2 <- item.content[,1]
+      overlapping.vars <- left_join(overlapping.vars,data.frame('content_v1' = item.content[,2], 'var1' = item.content$var1), by = 'var1')
+      overlapping.vars <- left_join(overlapping.vars,data.frame('content_v2' = item.content[,2], 'var2' = item.content$var2), by = 'var2')
+    }
+    cors_df <- overlapping.vars
+    return(cors_df)
+  }
+}
+
+pull.item <- function(cors_df, item){
+  #if(exists('removed.items') == TRUE){
+  #  removed.items <<- c(removed.items, item)
+  #}
+  #if(get0('removed.items', ifnotfound = FALSE) == FALSE){
+  #  removed.items <<- c(item)
+  #}
+  items <- c(item)
+  cors_df <- filter(cors_df, var1 != item)
+  cors_df <- filter(cors_df, var2 != item)
+  return(list('cors_df' = cors_df, 'item' = item))
+}
+
+calculate.count <- function(cors_df){
+  temp.1.count <-table(cors_df$var1) %>% data.frame(stringsAsFactors = FALSE)
+  temp.2.count <- table(cors_df$var2) %>% data.frame(stringsAsFactors = FALSE)
+  names(temp.1.count) <- c('var','freq1')
+  names(temp.2.count) <- c('var','freq2')
+  temp.cor.count <- full_join(temp.1.count, temp.2.count, by = 'var')
+  temp.cor.count$var <- as.character(temp.cor.count$var)
+  temp.cor.count <- tibble(temp.cor.count)
+  temp.cor.count$freq1[is.na(temp.cor.count$freq1)] <- 0
+  temp.cor.count$freq2[is.na(temp.cor.count$freq2)] <- 0
+  temp.cor.count <- mutate(temp.cor.count, total = freq1 + freq2)
+  return(arrange(temp.cor.count, desc(total)))
+}
+
+remove.duplicate.items <- function(cors_df, seed = 123){
+  temp.cors_df <- cors_df
+  removed.items <- c()
+  set.seed(seed)
+  while(length(temp.cors_df[[1]]) > 0){
+    calculate.count(temp.cors_df) %>% top_n(1, total) %>% print()
+    item <- calculate.count(temp.cors_df) %>% top_n(1, total) %>% sample_n(1) %>% .[[1]]
+    cat('\n','remove ', item,'\n')
+    temp.cors_df <- pull.item(temp.cors_df, item)$cors_df
+    removed.items <- c(removed.items, item)
+  }
+  return(removed.items)
+}
+
 ### Bass-ackward Syntax ####
 factor.analyses <- function(df, max.factors = 9, ...){ #can pass other inputs (i.e., rotation, estimation method) to fa function
   lapply(1:max.factors,function(x, df, ...){
@@ -755,6 +873,10 @@ extract.scores <- function(fa.list){
   return(scores.dat)
 }
 
+avg.list <- function(list){
+  Reduce("+", list)/length(list)
+}
+
 #Can pull specific parts of EFA output using sapply
 #sapply(fa.list, function(x){x$RMSEA})
 
@@ -819,6 +941,17 @@ getmode <- function(v) {
 
 #### Force a specific number of decimals #####
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+#### Number of parameters estimated ####
+
+num.params <- function(observed.vars, num.factors){
+  p <- observed.vars
+  m <- num.factors
+  a <- p*m + m*(m+1)/2 + p - m^2
+  b <- p*(p+1)/2
+  print('Number of parameters must be less than or equal to Vcov')
+  return(c('Num.Params' = a, 'Num.Vcov' = b))
+}
 
 #### Attempts at generating figure from Bass-ackward results #####
 # ___c. Attempt 3 #####
