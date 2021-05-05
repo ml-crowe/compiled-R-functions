@@ -956,123 +956,159 @@ num.params <- function(observed.vars, num.factors){
 #### Attempts at generating figure from Bass-ackward results #####
 # ___c. Attempt 3 #####
 # Bass-ackward list is clps.bass
-clps.bass[[3]]$Vaccounted
-extract.vaccounted(clps.bass)
-
-
-scores.cor <- extract.scores(clps.bass) %>% cor(use = 'pairwise')
-scores.cor
-
-from <- c(rep(1,2), rep(2,3), rep(3,3))
-to <- c(rep(c(2:3),1), rep(c(4:6),2))
-edges <- tibble(from, to)
-label <- c()
-for(i in 1:8){
-  label <- c(label,
-             scores.cor[edges$to[i], edges$from[i]])
-}
-
-grViz('
-  digraph bass{
-# node defintions
-
-node[fontname = Times, shape = rectangle];
-#n0 [label = "Total Variance"; fixedsize = T; width = "@@12"] #
-n1 [label = "@@1"] #; fixedsize = T; width = "@@13"
-n2 [label = "@@2"] #; fixedsize = T; width = "@@14"
-n3 [label = "@@3"] #; fixedsize = T; width = "@@15"
-n4 [label = "@@4"] #; fixedsize = T; width = "@@16"
-n5 [label = "@@5"] #; fixedsize = T; width = "@@17"
-n6 [label = "@@6"] #; fixedsize = T; width = "@@18"
-
-subgraph cluster1
-   {
-       style = invis;
-       n1;
-   }
-
-subgraph cluster2
-   {
-       style = invis;
-       n2; n3;
-   }
-
-subgraph cluster23
-   {
-       style = invis;
-       n4; n5; n6;
-   }
-
-n1 -> n2 [label = "@@7"]
-n1 -> n3 [label = "@@8"]
-n2 -> n4 [label = "@@9"]
-n2 -> n6 [label = "@@10"]
-n3 -> n5 [label = "@@11"]
-#n3 -> n6 [label = "@@12"]
-  }
-
-[1]: names(extract.loadings(clps.bass)[1])
-[2]: names(extract.loadings(clps.bass)[2])
-[3]: names(extract.loadings(clps.bass)[3])
-[4]: names(extract.loadings(clps.bass)[4])
-[5]: names(extract.loadings(clps.bass)[5])
-[6]: names(extract.loadings(clps.bass)[6])
-[7]: round(label[1],2)
-[8]: round(label[2],2)
-[9]: round(label[3],2)
-[10]: round(label[5],2)
-[11]: round(label[7],2)
-')
-
-# ___d. Attempt 4 ######
-library(Gmisc)
-library(glue)
-library(htmlTable)
-library(grid)
-library(magrittr)
-
-clps.bass[[3]]$Vaccounted
-vacc <- extract.vaccounted(clps.bass)[[2]]
-
-
-scores.cor <- extract.scores(clps.bass) %>% cor(use = 'pairwise')
-scores.cor
-
-from <- c(rep(1,2), rep(2,3), rep(3,3))
-to <- c(rep(c(2:3),1), rep(c(4:6),2))
-edges <- tibble(from, to)
-label <- c()
-for(i in 1:8){
-  label <- c(label,
-             scores.cor[edges$to[i], edges$from[i]])
-}
-
-grid.newpage()
-
-vert <- spreadVertical(
-  'one' = boxGrob('one'),
-  'two' = boxGrob('two'),
-  'three' = boxGrob('three'),
-  .from = .025,
-  .to = .90
-)
-
-bot <- spreadHorizontal(
-  '1' = boxGrob("F3.1", width = vacc$F3.1[2], height = .05, y = coords(vert$one)$y),
-  '3' = boxGrob("F3.3", width = vacc$F3.3[2], height = .05, y = coords(vert$one)$y),
-  '2' = boxGrob("F3.2", width = vacc$F3.2[2], height = .05, y = coords(vert$one)$y),
-  .from = .025,
-  .to = .975
-)
-
-boxGrob("Total Variance", width = 1, height = .05, y = .975)
-bot
-
-f2.1 <- boxGrob("F2.1", width = vacc$F2.1[2], height = .05, y = coords(vert$two)$y, x = (coords(bot$`1`)$x+coords(bot$`3`)$x)/2)
-f2.2 <- boxGrob("F2.2", width = vacc$F2.2[2], height = .05, y = coords(vert$two)$y, x = coords(bot$`2`)$x)
-f2.1
-f2.2
-
-boxGrob("F1.1", width = vacc$F1.1[2], height = .05, y = coords(vert$three)$y, x = (coords(f2.1)$x + coords(f2.2)$x)/2)
-
+#clps.bass[[3]]$Vaccounted
+#extract.vaccounted(clps.bass)
+#
+#
+#scores.cor <- extract.scores(clps.bass) %>% cor(use = 'pairwise')
+#scores.cor
+#
+#from <- c(rep(1,2), rep(2,3), rep(3,3))
+#to <- c(rep(c(2:3),1), rep(c(4:6),2))
+#edges <- tibble(from, to)
+#label <- c()
+#for(i in 1:8){
+#  label <- c(label,
+#             scores.cor[edges$to[i], edges$from[i]])
+#}
+#
+#grViz('
+#  digraph bass{
+## node defintions
+#
+#node[fontname = Times, shape = rectangle];
+##n0 [label = "Total Variance"; fixedsize = T; width = "@@12"] #
+#n1 [label = "@@1"] #; fixedsize = T; width = "@@13"
+#n2 [label = "@@2"] #; fixedsize = T; width = "@@14"
+#n3 [label = "@@3"] #; fixedsize = T; width = "@@15"
+#n4 [label = "@@4"] #; fixedsize = T; width = "@@16"
+#n5 [label = "@@5"] #; fixedsize = T; width = "@@17"
+#n6 [label = "@@6"] #; fixedsize = T; width = "@@18"
+#
+#subgraph cluster1
+#   {
+#       style = invis;
+#       n1;
+#   }
+#
+#subgraph cluster2
+#   {
+#       style = invis;
+#       n2; n3;
+#   }
+#
+#subgraph cluster23
+#   {
+#       style = invis;
+#       n4; n5; n6;
+#   }
+#
+#n1 -> n2 [label = "@@7"]
+#n1 -> n3 [label = "@@8"]
+#n2 -> n4 [label = "@@9"]
+#n2 -> n6 [label = "@@10"]
+#n3 -> n5 [label = "@@11"]
+##n3 -> n6 [label = "@@12"]
+#  }
+#
+#[1]: names(extract.loadings(clps.bass)[1])
+#[2]: names(extract.loadings(clps.bass)[2])
+#[3]: names(extract.loadings(clps.bass)[3])
+#[4]: names(extract.loadings(clps.bass)[4])
+#[5]: names(extract.loadings(clps.bass)[5])
+#[6]: names(extract.loadings(clps.bass)[6])
+#[7]: round(label[1],2)
+#[8]: round(label[2],2)
+#[9]: round(label[3],2)
+#[10]: round(label[5],2)
+#[11]: round(label[7],2)
+#')
+#
+## ___d. Attempt 4 ######
+#library(Gmisc)
+#library(glue)
+#library(htmlTable)
+#library(grid)
+#library(magrittr)
+#
+#clps.bass[[3]]$Vaccounted
+#vacc <- extract.vaccounted(clps.bass)[[2]]
+#
+#
+#scores.cor <- extract.scores(clps.bass) %>% cor(use = 'pairwise')
+#scores.cor
+#
+#from <- c(rep(1,2), rep(2,3), rep(3,3))
+#to <- c(rep(c(2:3),1), rep(c(4:6),2))
+#edges <- tibble(from, to)
+#label <- c()
+#for(i in 1:8){
+#  label <- c(label,
+#             scores.cor[edges$to[i], edges$from[i]])
+#}
+#
+#grid.newpage()
+#
+#vert <- spreadVertical(
+#  'one' = boxGrob('one'),
+#  'two' = boxGrob('two'),
+#  'three' = boxGrob('three'),
+#  .from = .025,
+#  .to = .90
+#)
+#
+#bot <- spreadHorizontal(
+#  '1' = boxGrob("F3.1", width = vacc$F3.1[2], height = .05, y = coords(vert$one)$y),
+#  '3' = boxGrob("F3.3", width = vacc$F3.3[2], height = .05, y = coords(vert$one)$y),
+#  '2' = boxGrob("F3.2", width = vacc$F3.2[2], height = .05, y = coords(vert$one)$y),
+#  .from = .025,
+#  .to = .975
+#)
+#
+#boxGrob("Total Variance", width = 1, height = .05, y = .975)
+#bot
+#
+#f2.1 <- boxGrob("F2.1", width = vacc$F2.1[2], height = .05, y = coords(vert$two)$y, x = (coords(bot$`1`)$x+coords(bot$`3`)$x)/2)
+#f2.2 <- boxGrob("F2.2", width = vacc$F2.2[2], height = .05, y = coords(vert$two)$y, x = coords(bot$`2`)$x)
+#f2.1
+#f2.2
+#
+#boxGrob("F1.1", width = vacc$F1.1[2], height = .05, y = coords(vert$three)$y, x = (coords(f2.1)$x + coords(f2.2)$x)/2)
+#
 # can't figure out how to label a connection
+
+##### Figuring out ggplot defaults #####
+#temp <- data.frame(x = 1:2, y = rep(20:1, each = 2), grp = factor(rep(1:20, each = 2)))
+#temp
+#
+## plot
+#p <- ggplot(data = temp, aes(x = x, y = y, linetype = grp, colour = grp)) +
+#  geom_line() +
+#  geom_text(aes(x = 0.95, label = grp)) +
+#  theme_classic() +
+#  theme(axis.title = element_blank(),
+#        axis.text = element_blank(),
+#        axis.ticks = element_blank(),
+#        axis.line = element_blank(),
+#        legend.position = "none")
+#p
+#
+## Just two lines, see below for pulling data  
+#temp <- data.frame(x = 1:2, y = rep(20:19, each = 2), grp = factor(rep(1:2, each = 2)))
+#temp
+#
+## plot
+#p <- ggplot(data = temp, aes(x = x, y = y, linetype = grp, colour = grp)) +
+#  geom_line() +
+#  geom_text(aes(x = 0.95, label = grp)) +
+#  theme_classic() +
+#  theme(axis.title = element_blank(),
+#        axis.text = element_blank(),
+#        axis.ticks = element_blank(),
+#        axis.line = element_blank(),
+#        legend.position = "none")
+#p
+#
+#g <- ggplot_build(p)
+#g$data[[1]]
+
