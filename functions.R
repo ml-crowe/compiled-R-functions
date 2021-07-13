@@ -297,7 +297,7 @@ irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #
 
 ##### Copy dataframe to Excel through clipboard #######
 write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
-  write.table(x,"clipboard-10000",sep="\t",row.names=row.names,col.names=col.names,...)
+  write.table(x,"clipboard-10000",sep="\t",na = '', row.names=row.names,col.names=col.names,...)
 }
 
 #if dataframe is df:
@@ -662,6 +662,9 @@ make.dat_cors <- function(full.df, cut, cor){
   }
   if(cor == 'tet'){
     dat_cors <- tetrachoric(clinical.df)$rho
+  }
+  if(cor == 'auto'){
+    dat_cors <- cor_auto(full.df, missing = 'pairwise')
   }
   dat_cors[upper.tri(dat_cors, diag = TRUE)] <- NA
   dat_cors <- data.frame(dat_cors)
