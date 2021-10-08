@@ -297,7 +297,7 @@ irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #
 
 ##### Copy dataframe to Excel through clipboard #######
 write.excel <- function(x,row.names=FALSE,col.names=TRUE,...) {
-  write.table(x,"clipboard-10000",sep="\t",row.names=row.names,col.names=col.names,...)
+  write.table(x,"clipboard-10000",sep="\t",na = '', row.names=row.names,col.names=col.names,...)
 }
 
 #if dataframe is df:
@@ -663,6 +663,9 @@ make.dat_cors <- function(full.df, cut, cor){
   if(cor == 'tet'){
     dat_cors <- tetrachoric(clinical.df)$rho
   }
+  if(cor == 'auto'){
+    dat_cors <- cor_auto(full.df, missing = 'pairwise')
+  }
   dat_cors[upper.tri(dat_cors, diag = TRUE)] <- NA
   dat_cors <- data.frame(dat_cors)
   dat_cors[,
@@ -953,8 +956,110 @@ num.params <- function(observed.vars, num.factors){
   return(c('Num.Params' = a, 'Num.Vcov' = b))
 }
 
+<<<<<<< HEAD
 #### Attempts at generating figure from Bass-ackward results  #####
 # --- NOTE FUNCTION IS NOT FINISHED AND WON'T WORK
+=======
+#### Function for identifying the edge strength of edges identified in NCT ouptut #######
+# Needs to be generalized to take names
+#edge.value <- function(nct){
+#  sig <- filter(nct$einv.pvals, nct$einv.pvals$'p-value' < .05)
+#  nw1 <- nct$nw1
+#  nw2 <- nct$nw2
+#  colnames(nw1) <- c("bor_ang","bor_aff","bor_emp","bor_idd","bor_par","bor_aband","bor_sib","bor_imp","bor_rel" )
+#  rownames(nw1) <- c("bor_ang","bor_aff","bor_emp","bor_idd","bor_par","bor_aband","bor_sib","bor_imp","bor_rel" )
+#  colnames(nw2) <- c("bor_ang","bor_aff","bor_emp","bor_idd","bor_par","bor_aband","bor_sib","bor_imp","bor_rel" )
+#  rownames(nw2) <- c("bor_ang","bor_aff","bor_emp","bor_idd","bor_par","bor_aband","bor_sib","bor_imp","bor_rel")
+#  result <- sapply(1:nrow(sig), function(x){
+#    data.frame('NW1' = nw1[sig[x,"Var1"],sig[x,"Var2"]],
+#               'NW2' = nw2[sig[x,"Var1"],sig[x,"Var2"]])
+#  }) %>% t()
+#  cbind(sig, result) %>% return()
+#}
+
+#Calculate edge differences ####
+# Allows you to say this edge is greater than or less than X% of edges
+calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
+                          order = 'sample',
+                          decreasing = T,
+                          node.labels = NULL,
+                          onlyNonZero = T,
+                          bonferroni = F){
+  cent <- x$bootTable %>% filter(type %in% statistics) %>% dplyr::select(name,id,value,type)
+  
+  if (onlyNonZero == T){
+    include <-     unique(x$sampleTable$id[x$sampleTable$type %in% statistics & x$sampleTable$value != 0])
+    cent <- cent %>% filter(id %in% include)
+  } else {
+    include <-     unique(x$sampleTable$id[x$sampleTable$type %in% statistics])
+    cent <- cent %>% filter(id %in% include)
+  }
+  
+  if (bonferroni == T){
+    nInclude <- length(include)
+    alpha <- alpha / (nInclude*(nInclude-1)/2)
+    if (verbose) message(paste0("Significance level (alpha) set to: ",format(signif(alpha,2),scientific = FALSE)))
+  }
+  
+  #if (verbose){
+  #  exp <- expAlpha(alpha,length(x$boots))
+  #  if (verbose) message(paste0("Expected significance level given number of bootstrap samples is approximately: ",format(signif(exp,2),scientific = FALSE)))
+  #}
+  
+  fullTable <- expand.grid(name = unique(cent$name),id1=unique(cent$id),id2=unique(cent$id),type = unique(cent$type),
+                           stringsAsFactors = FALSE)
+  
+  Quantiles <- fullTable %>%
+    left_join(dplyr::select(cent,name,id1=id,value1=value,type),by=c("name","id1","type")) %>%
+    left_join(dplyr::select(cent,name,id2=id,value2=value,type),by=c("name","id2","type"))  %>%
+    group_by(id1,id2,type) %>%
+    summarize(lower = quantile(value2-value1,alpha/2),upper = quantile(value2-value1,1-alpha/2)) %>%
+    mutate(contain0 = 0 >= lower & 0 <= upper)
+  
+  #bootmean:
+  bootMeans <- x$bootTable %>% filter(type %in% statistics) %>% rename(id1=id) %>%
+    group_by(id1,type) %>% summarize(mean = mean(value,na.rm=TRUE))
+  
+  sample <- x$sampleTable %>% filter(type %in% statistics) %>% dplyr::select(id1=id,value,type) %>% 
+    left_join(bootMeans,by=c("id1","type"))
+  
+  # Now for every node: minimal node equal to....
+  DF <-  sample %>% group_by(type) %>%
+    mutate(rank = order(order(value,mean))) %>% arrange(rank)
+  
+  DF2 <- DF %>% filter(type == statistics[[1]])
+  
+  if (onlyNonZero == T){
+    include <-     x$sampleTable$id[x$sampleTable$type %in% statistics & x$sampleTable$value != 0]
+    DF2 <- DF2 %>% filter(id1 %in% include)
+    DF <- DF %>% filter(id1 %in% include)
+  }
+  
+  if (order == "sample"){
+    levels <- DF2$id1[order(DF2$value,decreasing = !decreasing)]  
+  } else if (order == "mean"){
+    levels <- DF2$id1[order(DF2$rank, decreasing = !decreasing)]  
+  } else  if (order == "id"){
+    levels <- gtools::mixedsort(unique(include)) #changed this from sample$id1 - wasn't previously limiting to only non-zero edges
+  }
+  
+  Quantiles$id1 <- factor(Quantiles$id1,levels=levels)
+  Quantiles$id2 <- factor(Quantiles$id2,levels=levels)
+  Quantiles$fill <- ifelse(Quantiles$id1 == Quantiles$id2, "same",
+                           ifelse(Quantiles$contain0,"nonsig",
+                                  ifelse(Quantiles$lower < 0 & Quantiles$upper < 0, 'greater',
+                                         ifelse(Quantiles$lower > 0 & Quantiles$upper > 0, 'less', NA))))
+  percent.dif <- group_by(Quantiles, id1) %>% 
+    summarize(greater = (sum(fill == 'greater'))/(length(levels(Quantiles$id1))-1),
+              less = (sum(fill == 'less'))/(length(levels(Quantiles$id1))-1))
+  return(percent.dif)
+}
+
+# Foundation for counting the number of edges each node has with a magnitude greater than some cutoff ####
+#pcl.btw.net.no.t$graph %>% apply(.,c(1,2),function(x){ifelse(abs(x) > .05, return(1), return(0))}) %>% apply(.,2,sum)
+
+#### Attempts at generating figure from Bass-ackward results #####
+>>>>>>> 3b254b8a00f46ecfd562240209b732261d4dc993
 # ___c. Attempt 3 #####
 # Bass-ackward list is clps.bass
 #clps.bass[[3]]$Vaccounted
