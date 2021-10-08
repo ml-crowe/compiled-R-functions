@@ -953,7 +953,8 @@ num.params <- function(observed.vars, num.factors){
   return(c('Num.Params' = a, 'Num.Vcov' = b))
 }
 
-#### Attempts at generating figure from Bass-ackward results #####
+#### Attempts at generating figure from Bass-ackward results  #####
+# --- NOTE FUNCTION IS NOT FINISHED AND WON'T WORK
 # ___c. Attempt 3 #####
 # Bass-ackward list is clps.bass
 #clps.bass[[3]]$Vaccounted
