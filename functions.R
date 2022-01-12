@@ -20,7 +20,7 @@ mean.n<-function(df,n){
 #above example identifies all variable names that include 'hsns' but
 #excludes those that have a 5 or "oj". Pipe key "|" is the "or" operator
 #other operators (i.e,. "&") can also be used.
-varlist <- function (df=NULL,type=c("numeric","factor","character"), pattern=NULL, exclude=NULL, ignore.case=TRUE) {
+varlist <- function (df=NULL,type=c("numeric","factor","character", "double", "logical", "integer"), pattern=NULL, exclude=NULL, ignore.case=TRUE) {
   vars <- character(0)
   if (any(type %in% "numeric")) {
     vars <- c(vars,names(df)[sapply(df,is.numeric)])
@@ -30,6 +30,15 @@ varlist <- function (df=NULL,type=c("numeric","factor","character"), pattern=NUL
   }
   if (any(type %in% "character")) {
     vars <- c(vars,names(df)[sapply(df,is.character)])
+  }
+  if (any(type %in% "double")) {
+    vars <- c(vars,names(df)[sapply(df,is.double)])
+  }
+  if (any(type %in% "logical")) {
+    vars <- c(vars,names(df)[sapply(df,is.logical)])
+  }
+  if (any(type %in% "integer")) {
+    vars <- c(vars,names(df)[sapply(df,is.integer)])
   }
   if(!is.null(exclude)){
     if(ignore.case==TRUE){
