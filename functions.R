@@ -965,6 +965,10 @@ num.params <- function(observed.vars, num.factors){
   return(c('Num.Params' = a, 'Num.Vcov' = b))
 }
 
+<<<<<<< HEAD
+#### Attempts at generating figure from Bass-ackward results  #####
+# --- NOTE FUNCTION IS NOT FINISHED AND WON'T WORK
+=======
 #### Function for identifying the edge strength of edges identified in NCT ouptut #######
 # Needs to be generalized to take names
 #edge.value <- function(nct){
@@ -1064,6 +1068,7 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
 #pcl.btw.net.no.t$graph %>% apply(.,c(1,2),function(x){ifelse(abs(x) > .05, return(1), return(0))}) %>% apply(.,2,sum)
 
 #### Attempts at generating figure from Bass-ackward results #####
+>>>>>>> 3b254b8a00f46ecfd562240209b732261d4dc993
 # ___c. Attempt 3 #####
 # Bass-ackward list is clps.bass
 #clps.bass[[3]]$Vaccounted
