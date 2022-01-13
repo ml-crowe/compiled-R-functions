@@ -665,9 +665,22 @@ paste.modfit <- function(data, model.results){
 }
 
 #### Duplicate Item Removal #####
+
+# sample data
+#library(readr)
+#library(psych)
+#library(dplyr)
+#full.df <- read_csv("C:/Users/micha/Google Drive/A UGA Stuff/Research Stuff/Structure of Narcissism/clean nar structure dataset no worker id - 5-28-18.csv")
+#full.df <- select(full.df, nar1_1:nar8_32)
+
+# Function for identify correlations greater than cutoff to be used in make.cors_df
+# Returns correlation matrix with only variables with at least one correlation greater than the cutoff
+# Upper diag of the correlation matrix is NA
 make.dat_cors <- function(full.df, cut, cor){
-  if(cor == 'cor'){
-    dat_cors <- r_table(full.df)$cors %>% as.matrix
+  require(magrittr)
+  require(qgraph)
+    if(cor == 'cor'){
+    dat_cors <- cor(full.df, use = 'pairwise')
   }
   if(cor == 'tet'){
     dat_cors <- tetrachoric(clinical.df)$rho
@@ -687,8 +700,9 @@ make.dat_cors <- function(full.df, cut, cor){
   return(dat_cors)
 }
 
-
-
+# Uses output from make.dat_cors function
+# Generates list of length ncol(dat_cors) to be used in make.cors_df
+# Each element matches the variable with those that it overlaps with 
 overlap.var.list <- function(dat_cors, cut){
   #var.list <- sapply(dat_cors,function(x){which(x>= cut)}, simplify = TRUE)
   var.list <- lapply(dat_cors,function(x){which(x>= cut)})
@@ -704,6 +718,8 @@ overlap.var.list <- function(dat_cors, cut){
 #  return(vars.with.overlap)
 #}
 
+# Uses list generated from overlap.var.list and labels elements within each list
+# To be used in make.cors_df
 overlap.named.var.list <- function(dat_cors, var.list){
   vars.with.overlap<-list()
   if(length(var.list) == 1){
@@ -717,6 +733,9 @@ overlap.named.var.list <- function(dat_cors, var.list){
   return(vars.with.overlap)
 }
 
+# Uses make.dat_cors, overlap.var.list, overlap.named.var.list
+# Input is dataframe, cutoff, correlation type, and (optionally) dataframe with two columns matching variable name (column 1) with item content (column 2)
+# Generates dataframe with one row for each correlation with magnitude greater than cutoff
 make.cors_df <- function(full.df, cut, item.content = NULL, cor = 'cor'){
   dat_cors <- make.dat_cors(full.df, cut, cor)
   var.list <- overlap.var.list(dat_cors, cut)
@@ -744,6 +763,9 @@ make.cors_df <- function(full.df, cut, item.content = NULL, cor = 'cor'){
   }
 }
 
+# To be used in remove.duplicate.items
+# Uses output from make.cors_df
+# Excludes given item from dataframe
 pull.item <- function(cors_df, item){
   #if(exists('removed.items') == TRUE){
   #  removed.items <<- c(removed.items, item)
@@ -751,12 +773,14 @@ pull.item <- function(cors_df, item){
   #if(get0('removed.items', ifnotfound = FALSE) == FALSE){
   #  removed.items <<- c(item)
   #}
-  items <- c(item)
+  #items <- c(item)
   cors_df <- filter(cors_df, var1 != item)
   cors_df <- filter(cors_df, var2 != item)
   return(list('cors_df' = cors_df, 'item' = item))
 }
 
+# To be used in remove.duplicate.items
+# Calculates total number of correlations each item has in make.cors_df output
 calculate.count <- function(cors_df){
   temp.1.count <-table(cors_df$var1) %>% data.frame(stringsAsFactors = FALSE)
   temp.2.count <- table(cors_df$var2) %>% data.frame(stringsAsFactors = FALSE)
@@ -771,6 +795,10 @@ calculate.count <- function(cors_df){
   return(arrange(temp.cor.count, desc(total)))
 }
 
+# Uses pull.item and calculate.count
+# Selects items for removal iteratively until there are no more correlations in the make.cors_df table
+# Items with the greatest number of correlations are prioritized, random selection is used when ties occur
+# Provides vector with names of variables to be removed
 remove.duplicate.items <- function(cors_df, seed = 123){
   temp.cors_df <- cors_df
   removed.items <- c()
