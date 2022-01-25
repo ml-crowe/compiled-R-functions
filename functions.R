@@ -921,6 +921,41 @@ avg.list <- function(list){
 #Can pull specific parts of EFA output using sapply
 #sapply(fa.list, function(x){x$RMSEA})
 
+fit.table <- function(fa.list, vss.result = NULL, df = NULL){
+  fit <- data.frame('Factors' = 1:length(fa.list))
+  if(is.null(vss.result) & is.null(df)){
+    print('Either vss object or raw data matrix must be provided for MAP analysis')
+    map <- NA
+  }
+  if(!is.null(vss.result)){
+    if(!is.null(df)){
+      print('raw dataframe ignored as vss.results were provided')
+    }
+    map <- vss.pa$map[1:length(fa.list)]
+  }
+  if(is.null(vss.result) & !is.null(df)){
+    vss <- vss(df, n = length(fa.list), 
+               rotate = fa.list[[2]]$rotation, 
+               fm = fa.list[[2]]$fm,
+               plot = F)
+    map <- vss$map[1:length(fa.list)]
+  }
+  fit$VarAccounted <- sapply(fa.list, function(x){x$Vaccounted['Proportion Var',] %>% sum()})
+  fit$Delta.Var.Account <- c(NA,
+                             sapply(2:length(fit$VarAccounted), function(x){
+                               fit$VarAccounted[x] - fit$VarAccounted[x-1]
+                             }))
+  rmsea <- t(sapply(fa.list, function(x){x$RMSEA}))
+  confidence <- rmsea[1,'confidence']
+  cat('RMSEA confidence = ', confidence, '\n')
+  fit$RMSEA <- rmsea[,'RMSEA']
+  fit$lower.CI <- rmsea[,'lower']
+  fit$upper.CI <- rmsea[,'upper']
+  fit$MAP <- map
+  fit$BIC <- sapply(fa.list, function(x){x$BIC})
+  return(fit)
+}
+
 ### Would love to add HTML tabling function #####
 # See below for possible resources
 # https://www.htmlwidgets.org/showcase_datatables.html
