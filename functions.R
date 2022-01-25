@@ -814,10 +814,11 @@ remove.duplicate.items <- function(cors_df, seed = 123){
 }
 
 ### Bass-ackward Syntax ####
-factor.analyses <- function(df, max.factors = 9, ...){ #can pass other inputs (i.e., rotation, estimation method) to fa function
-  lapply(1:max.factors,function(x, df, ...){
-    fa(r = df, nfactors = x, ...)
-  }, df, ...)
+factor.analyses <- function(df, max.factors = 9, rotate = 'promax', fm = 'pa', alpha = .05, ...){ #can pass other inputs (i.e., rotation, estimation method) to fa function
+  require(psych)
+  lapply(1:max.factors,function(x, df, rotate = rotate, fm = fm, alpha = alpha, ...){
+    fa(r = df, nfactors = x, rotate = rotate, fm = fm, alpha = alpha, ...)
+  }, df, rotate = rotate, fm = fm, alpha = alpha, ...)
 }
 
 extract.structures <- function(fa.list){
