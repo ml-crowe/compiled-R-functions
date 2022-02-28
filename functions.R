@@ -22,17 +22,14 @@ mean.n<-function(df,n){
 #other operators (i.e,. "&") can also be used.
 varlist <- function (df=NULL,type=c("numeric","factor","character", "double", "logical", "integer"), pattern=NULL, exclude=NULL, ignore.case=TRUE) {
   vars <- character(0)
-  if (any(type %in% "numeric")) {
-    vars <- c(vars,names(df)[sapply(df,is.numeric)])
+  if (any(type %in% c("numeric", "double"))) {
+    vars <- c(vars,names(df)[sapply(df,is.double)]) #had is.numeric and separate is.double, but that was resulting in duplicates
   }
   if (any(type %in% "factor")) {
     vars <- c(vars,names(df)[sapply(df,is.factor)])
   }
   if (any(type %in% "character")) {
     vars <- c(vars,names(df)[sapply(df,is.character)])
-  }
-  if (any(type %in% "double")) {
-    vars <- c(vars,names(df)[sapply(df,is.double)])
   }
   if (any(type %in% "logical")) {
     vars <- c(vars,names(df)[sapply(df,is.logical)])
