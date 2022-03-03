@@ -673,17 +673,23 @@ paste.modfit <- function(data, model.results){
 # Function for identify correlations greater than cutoff to be used in make.cors_df
 # Returns correlation matrix with only variables with at least one correlation greater than the cutoff
 # Upper diag of the correlation matrix is NA
-make.dat_cors <- function(full.df, cut, cor){
+# Recently modified to be able to take correlation matrix as input as well
+make.dat_cors <- function(full.df, cut, cor, dat.is.cor = F){
   require(magrittr)
   require(qgraph)
+  if(dat.is.cor == F){
     if(cor == 'cor'){
-    dat_cors <- cor(full.df, use = 'pairwise')
+      dat_cors <- cor(full.df, use = 'pairwise')
+    }
+    if(cor == 'tet'){
+      dat_cors <- tetrachoric(clinical.df)$rho
+    }
+    if(cor == 'auto'){
+      dat_cors <- cor_auto(full.df, missing = 'pairwise')
+    }
   }
-  if(cor == 'tet'){
-    dat_cors <- tetrachoric(clinical.df)$rho
-  }
-  if(cor == 'auto'){
-    dat_cors <- cor_auto(full.df, missing = 'pairwise')
+  if(dat.is.cor == T){
+    dat_cors <- as.matrix(full.df)
   }
   dat_cors[upper.tri(dat_cors, diag = TRUE)] <- NA
   dat_cors <- data.frame(dat_cors)
@@ -733,8 +739,8 @@ overlap.named.var.list <- function(dat_cors, var.list){
 # Uses make.dat_cors, overlap.var.list, overlap.named.var.list
 # Input is dataframe, cutoff, correlation type, and (optionally) dataframe with two columns matching variable name (column 1) with item content (column 2)
 # Generates dataframe with one row for each correlation with magnitude greater than cutoff
-make.cors_df <- function(full.df, cut, item.content = NULL, cor = 'cor'){
-  dat_cors <- make.dat_cors(full.df, cut, cor)
+make.cors_df <- function(full.df, cut, item.content = NULL, cor = 'cor', dat.is.cor = F){
+  dat_cors <- make.dat_cors(full.df, cut, cor, dat.is.cor)
   var.list <- overlap.var.list(dat_cors, cut)
   if(length(var.list) == 0){
     cat('No correlations greater than or equal to ', cut)
@@ -818,14 +824,16 @@ factor.analyses <- function(df, max.factors = 9, rotate = 'promax', fm = 'pa', a
   }, df, rotate = rotate, fm = fm, alpha = alpha, ...)
 }
 
-extract.structures <- function(fa.list){
+extract.structures <- function(fa.list, order.names = F){
   structure.list <- lapply(fa.list, function(x){unclass(x$Structure)})
-  order.list <- lapply(structure.list, function(x){
-    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
-  })
-  structure.list <- lapply(1:length(structure.list), function(x){
-    structure.list[[x]] <- structure.list[[x]][,c(order.list[[x]])]
-  })
+  if(order.names == T){
+    order.list <- lapply(structure.list, function(x){
+      data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+    })
+    structure.list <- lapply(1:length(structure.list), function(x){
+      structure.list[[x]] <- structure.list[[x]][,c(order.list[[x]])]
+    })
+  }
   structure.dat <- do.call(data.frame, structure.list)
   suffix <- lapply(1:length(fa.list), function(x){
     1:x
@@ -838,14 +846,16 @@ extract.structures <- function(fa.list){
   return(structure.dat)
 }
 
-extract.loadings <- function(fa.list){
+extract.loadings <- function(fa.list, order.names = F){
   loadings.list <- lapply(fa.list, function(x){unclass(x$loadings)})
-  order.list <- lapply(loadings.list, function(x){
-    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
-  })
-  loadings.list <- lapply(1:length(loadings.list), function(x){
-    loadings.list[[x]] <- loadings.list[[x]][,c(order.list[[x]])]
-  })
+  if(order.names == T){
+    order.list <- lapply(loadings.list, function(x){
+      data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+    })
+    loadings.list <- lapply(1:length(loadings.list), function(x){
+      loadings.list[[x]] <- loadings.list[[x]][,c(order.list[[x]])]
+    })
+  }
   loadings.dat <- do.call(data.frame, loadings.list)
   suffix <- lapply(1:length(fa.list), function(x){
     1:x
@@ -858,16 +868,17 @@ extract.loadings <- function(fa.list){
   return(loadings.dat)
 }
                     
-extract.vaccounted <- function(fa.list){
+extract.vaccounted <- function(fa.list, order.names = F){
   vaccounted.list <- lapply(fa.list, function(x){unclass(x$Vaccounted)})
   vaccounted.list[[1]] <- rbind(vaccounted.list[[1]], 'Cumulative Var' = vaccounted.list[[1]][2,], 'Proportion Explained' = 1, 'Cumulative Proportion' = 1)
-  order.list <- lapply(vaccounted.list, function(x){
-    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
-  })
-  vaccounted.list <- lapply(1:length(vaccounted.list), function(x){
-    vaccounted.list[[x]] <- vaccounted.list[[x]][,c(order.list[[x]])]
-  })
-  
+  if(order.names == T){
+    order.list <- lapply(vaccounted.list, function(x){
+      data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+    })
+    vaccounted.list <- lapply(1:length(vaccounted.list), function(x){
+      vaccounted.list[[x]] <- vaccounted.list[[x]][,c(order.list[[x]])]
+    })
+  }
   vaccounted.dat <- do.call(data.frame, vaccounted.list)
   suffix <- lapply(1:length(fa.list), function(x){
     1:x
@@ -891,14 +902,16 @@ extract.vaccounted <- function(fa.list){
 #  return(data.frame('Vaccounted' = vec))
 #}
 
-extract.scores <- function(fa.list){
+extract.scores <- function(fa.list, order.names = F){
   scores.list <- lapply(fa.list, function(x){x$scores})
-  order.list <- lapply(scores.list, function(x){
-    data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
-  })
-  scores.list <- lapply(1:length(scores.list), function(x){
-    scores.list[[x]] <- scores.list[[x]][,c(order.list[[x]])]
-  })
+  if(order.names == T){
+    order.list <- lapply(scores.list, function(x){
+      data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
+    })
+    scores.list <- lapply(1:length(scores.list), function(x){
+      scores.list[[x]] <- scores.list[[x]][,c(order.list[[x]])]
+    })
+  }
   scores.dat <- do.call(data.frame, scores.list)
   suffix <- lapply(1:length(fa.list), function(x){
     1:x
@@ -987,7 +1000,7 @@ p.missing <- function(df, sort = F){
 #           'one' = rep(1,20))  %>% write.excel(row.names = F, col.names = F)
 
 #### Save and install list of R packages ######
-# don't need to use this if packages are stored in a user library
+# don't need to use this if packages are stored in a user library (as they are at VA) - just copy and paste folders
 ## Save list of R packages
 #tmp = installed.packages()
 #installedpackages = as.vector(tmp[is.na(tmp[,"Priority"]), 1])
@@ -1129,6 +1142,10 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
 #pcl.btw.net.no.t$graph %>% apply(.,c(1,2),function(x){ifelse(abs(x) > .05, return(1), return(0))}) %>% apply(.,2,sum)
 
 #### Attempts at generating figure from Bass-ackward results #####
+
+# Consider using bassAckward function syntax as partial template
+# View(bassAckward.diagram)
+
 #### FUNCTION IS NOT FINISHED AND WON'T WORK
 # ___c. Attempt 3 #####
 # Bass-ackward list is clps.bass
