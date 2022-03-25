@@ -82,10 +82,10 @@ search <- function(x = ''){
 #I modified a little so if you find it doesn't work for one purpose or another it is probably my fault.
 #for the most part you can ignore this function because it just feeds into my r_table() function that is below.
 
-cor_table<- function(x,vars=NULL,with=NULL,flag=TRUE,strict=FALSE,round = 2){
+cor_table<- function(x,vars=NULL,with=NULL,flag=TRUE,strict=FALSE,round = 2, type = 'pearson'){
   require(Hmisc,warn.conflicts=TRUE)
   data<-as.matrix(x)
-  Rmat <- rcorr(data)
+  Rmat <- rcorr(data, type = type)
   RmatP <- Rmat$P
   ComRmat <- round(Rmat$r, 5)
   originalRmat<-Rmat$r
@@ -233,7 +233,9 @@ r_table<- function(x, #data frame that can be coerced to a matrix
                    with=NULL, #the variables that will appear across the top
                    flag=TRUE, #flag significance
                    strict=FALSE, #If TRUE, it will use .01 cutoff for significance
-                   round = 2,...) #how many decimal places to round to when printing
+                   round = 2, #how many decimal places to round to when printing
+                   type = 'pearson',
+                   ...) 
   UseMethod("r_table")
 
 r_table.default<-function(x, #data frame that can be coerced to a matrix
@@ -241,9 +243,11 @@ r_table.default<-function(x, #data frame that can be coerced to a matrix
                           with=NULL, #the variables that will appear across the top
                           flag=TRUE, #flag significance
                           strict=FALSE, #If TRUE, it will use .01 cutoff for significance
-                          round = 2,...) #how many decimal places to round to
+                          round = 2, #how many decimal places to round to
+                          type = 'pearson',
+                          ...) 
 {
-  r_table<-cor_table(x,vars=vars,with=with,flag=flag,strict=strict,round=round)
+  r_table<-cor_table(x,vars=vars,with=with,flag=flag,strict=strict,round=round, type = type)
   class(r_table)<-"r_table"
   r_table
 }
@@ -506,57 +510,21 @@ fa.CFI<-function(x){
 #  return(list('skew' = skew, 't.test' = t.test, 'p' = p))
 #}
 
-#### Potentially valuable coding scheme ######
+#### Test correlation differences ######
+# functional supply loop for testing correlation differences
+# requires output from rcorr() function - labeled in below syntax as "cors"
+# rcorr() yields list of 3 dataframes, cors$r, cors$n, cors$p
+# this loop assumes you are comparing cor differences across the first four variables in the correlation matrix
 
-##### attempt at programmatically comparing nomological nets across factors #####
-#temp <- list()
-#multiple.cor.comp <- function(outcome, dataframe, factors){
-#  for(i in 1:(factors-1)){
-#    for(g in 2:factors){
-#      if(i != g){
-#        if(i < g){
-#          result <- as.formula(paste("~F", factors, '.', i, '+',outcome,"|F", factors, '.', g, '+',outcome, sep = '')) %>%
-#            cocor(dataframe, alternative = 't', test = 'meng1992', alpha = .01)
-#          temp[[i]] <- result@meng1992$p.value
-#          #print(paste(i, 'v', g)) #was able to get this function to print the comparisons, but that is as close as I could get
-#        }
-#      }
-#    }
-#  }
-#  return(temp)
-#}
-
-#example attempt
-#multiple.cor.comp('n',outcomesdf, 3)
-#only provided two of the three comparisons because of limited temp[[i]] assignment
-
-#possible that the the function could be simplified with following:
-#cor.comp <- function(outcome, dataframe, factors, var1, var2){
-#  y=as.name(outcome)
-#  comparison <- as.formula(paste('~F',factors,'.', var1, '+', y, '|F', factors, '.', var2, '+', y, sep = '')) %>%
-#    cocor(dataframe, alternative = 't',test = 'meng1992',alpha = .01)
-#  return(comparison@meng1992$p.value)
-#}
-
-
-#also don't know if attempt would work in a supply loop as it was intented to be used - see other example below:
-
-#f3comps<-data.frame(
-#  'AEvN' = sapply(names(outcomesdf[1:6]),function(x){
-#    y=as.name(x)
-#    round(cocor(as.formula(paste("~F3.1 +",y,"| F3.2 +",y)),outcomesdf,alternative = 't',test = 'meng1992',alpha = .01)@meng1992$p.value,4)
-#  }),
-#
-#  'AEvA' = sapply(names(outcomesdf[1:6]),function(x){
-#    y=as.name(x)
-#    round(cocor(as.formula(paste("~F3.1 +",y,"| F3.3 +",y)),outcomesdf,alternative = 't',test = 'meng1992',alpha = .01)@meng1992$p.value,4)
-#  }),
-#
-#  'AvN' = sapply(names(outcomesdf[1:6]),function(x){
-#    y=as.name(x)
-#    round(cocor(as.formula(paste("~F3.2 +",y,"| F3.3 +",y)),outcomesdf,alternative = 't',test = 'meng1992',alpha = .01)@meng1992$p.value,4)
-#  })
-#)
+#sapply(rownames(cors$r)[5:length(rownames(cors$r))], function(third.var){
+#  lapply(1:3, function(x){
+#    lapply(1:(4-x), function(y){
+#      out <- cocor.dep.groups.overlap(cors$r[third.var,x], cors$r[third.var,(x+y)], cors$r[x,(x+y)], min(cors$n[third.var,(x+y)], cors$n[third.var,(x+y)], cors$n[x,(x+y)]), test = 'meng1992')@meng1992$p.value
+#      names(out) = paste0(x,'v',(x+y))
+#      return(out)
+#    }) %>% do.call(c, .)
+#  }) %>% do.call(c, .)
+#}) %>% t %>% round(3)
 
 ##### comparing nomological nets by correlating correlation profiles ####
 profile_correlation<-function(x){
@@ -1142,6 +1110,52 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
 #pcl.btw.net.no.t$graph %>% apply(.,c(1,2),function(x){ifelse(abs(x) > .05, return(1), return(0))}) %>% apply(.,2,sum)
 
 #### Attempts at generating figure from Bass-ackward results #####
+# diagram function (https://cran.r-project.org/web/packages/diagram/vignettes/diagram.pdf) should also be considered
+# I believe I made a partially functional function using that for the Narcissism project
+
+# https://github.com/rich-iannone/DiagrammeR - use this as online vignette doesn't appear updated.
+# example DiagrammeR syntax follows:
+
+#ndf <-
+#create_node_df(
+#  n = 4,
+#  label = c("a", "b", "c", "d"),
+#  type  = "lower",
+#  style = "filled",
+#  color = "aqua",
+#  shape = c("circle", "circle",
+#            "rectangle", "rectangle"),
+#  data = c(3.5, 2.6, 9.4, 2.7)
+#)
+#edf <-
+#  create_edge_df(
+#    label = c('1','.9','.85'),
+#    from = c(1, 2, 3),
+#    to   = c(4, 3, 1),
+#    rel  = "leading_to"
+#  )
+#
+#get_edge_df(graph)
+#
+#graph <-
+#  create_graph(
+#    nodes_df = ndf,
+#    edges_df = edf
+#  ) %>%
+#  set_node_attrs(
+#    node_attr = "fontname",
+#    values = "Helvetica"
+#  ) %>%
+#  set_edge_attrs(
+#    edge_attr = "color",
+#    values = "blue"
+#  ) %>%
+#  set_edge_attrs(
+#    edge_attr = "arrowsize",
+#    values = 2
+#  )
+#
+#graph %>% render_graph()
 
 # Consider using bassAckward function syntax as partial template
 # View(bassAckward.diagram)
