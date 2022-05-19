@@ -20,7 +20,7 @@ mean.n<-function(df,n){
 #above example identifies all variable names that include 'hsns' but
 #excludes those that have a 5 or "oj". Pipe key "|" is the "or" operator
 #other operators (i.e,. "&") can also be used.
-varlist <- function (df=NULL,type=c("numeric","factor","character", "double", "logical", "integer"), pattern=NULL, exclude=NULL, ignore.case=TRUE) {
+varlist <- function (df=NULL, pattern=NULL, exclude=NULL, type=c("numeric","factor","character", "double", "logical", "integer"), ignore.case=TRUE) {
   vars <- character(0)
   if (any(type %in% c("numeric", "double"))) {
     vars <- c(vars,names(df)[sapply(df,is.double)]) #had is.numeric and separate is.double, but that was resulting in duplicates
@@ -1105,6 +1105,10 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
               less = (sum(fill == 'less'))/(length(levels(Quantiles$id1))-1))
   return(percent.dif)
 }
+
+# Improve accuracy of data import ----
+# Imporve read_csv by increasing the number of rows used for guessing the type of variable
+# vasterling.df <- read_csv(here("data/vasterling_dat.csv"), guess_max = 3078)
 
 # Foundation for counting the number of edges each node has with a magnitude greater than some cutoff ####
 #pcl.btw.net.no.t$graph %>% apply(.,c(1,2),function(x){ifelse(abs(x) > .05, return(1), return(0))}) %>% apply(.,2,sum)
