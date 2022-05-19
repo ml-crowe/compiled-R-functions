@@ -909,7 +909,7 @@ fit.table <- function(fa.list, vss.result = NULL, df = NULL){
     if(!is.null(df)){
       print('raw dataframe ignored as vss.results were provided')
     }
-    map <- vss.pa$map[1:length(fa.list)]
+    map <- vss.result$map[1:length(fa.list)]
   }
   if(is.null(vss.result) & !is.null(df)){
     vss <- vss(df, n = length(fa.list), 
@@ -929,6 +929,9 @@ fit.table <- function(fa.list, vss.result = NULL, df = NULL){
   fit$RMSEA <- rmsea[,'RMSEA']
   fit$lower.CI <- rmsea[,'lower']
   fit$upper.CI <- rmsea[,'upper']
+  fit$CI.overlap <- c(sapply(1:(length(fa.list)-1), function(x){
+    ifelse((fit$lower.CI[x]-fit$upper.CI[x+1]) > 0, 0, 1)
+  }),NA)
   fit$MAP <- map
   fit$BIC <- sapply(fa.list, function(x){x$BIC})
   return(fit)
