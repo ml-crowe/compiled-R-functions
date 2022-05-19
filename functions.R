@@ -835,7 +835,7 @@ extract.loadings <- function(fa.list, order.names = F){
   names(loadings.dat) <- f.names
   return(loadings.dat)
 }
-                    
+
 extract.vaccounted <- function(fa.list, order.names = F){
   vaccounted.list <- lapply(fa.list, function(x){unclass(x$Vaccounted)})
   vaccounted.list[[1]] <- rbind(vaccounted.list[[1]], 'Cumulative Var' = vaccounted.list[[1]][2,], 'Proportion Explained' = 1, 'Cumulative Proportion' = 1)
@@ -870,8 +870,18 @@ extract.vaccounted <- function(fa.list, order.names = F){
 #  return(data.frame('Vaccounted' = vec))
 #}
 
-extract.scores <- function(fa.list, order.names = F){
-  scores.list <- lapply(fa.list, function(x){x$scores})
+extract.scores <- function(fa.list, order.names = F, method = 'Thurstone', dat = NULL){
+  if(method == 'Thurstone'){
+    scores.list <- lapply(fa.list, function(x){x$scores})
+  }
+  if(method == 'tenBerge'){
+    if(is.null(dat)){
+      print('Need to include raw data to calculate tenBerge scores')
+    }
+    scores.list <- lapply(fa.list, function(x){
+      factor.scores(dat, x, method = 'tenBerge')$scores
+    })
+  }
   if(order.names == T){
     order.list <- lapply(scores.list, function(x){
       data.frame(x) %>% names() %>% gsub('PA','',., fixed = T) %>% as.numeric() %>% order()
