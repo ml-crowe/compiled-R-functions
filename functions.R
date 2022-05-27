@@ -90,6 +90,7 @@ cor_table<- function(x,vars=NULL,with=NULL,flag=TRUE,strict=FALSE,round = 2, typ
   ComRmat <- round(Rmat$r, 5)
   originalRmat<-Rmat$r
   ComRPmat <- round(Rmat$P,3)
+  originalRPmat <- Rmat$P # added this line to avoid flagging issues due to rounding errors
   ComRnmat<- Rmat$n
   
   if(round == 2){
@@ -124,9 +125,10 @@ cor_table<- function(x,vars=NULL,with=NULL,flag=TRUE,strict=FALSE,round = 2, typ
     if(strict==FALSE){
       for(i in 1:nrow(ComRmat)) {
         for (g in 1:ncol(ComRmat)){
-          ifelse(ComRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '**',sep=""),
-                 ifelse(ComRPmat[i,g] <= .05, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
-                        ifelse(ComRPmat[i,g] <= .1, ComRmatFin[i,g] <- paste(ComRmat[i,g], "'",sep=""),
+          # in the following statements replaced ComRPmat with originalRPmat
+          ifelse(originalRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '**',sep=""),
+                 ifelse(originalRPmat[i,g] <= .05, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
+                        ifelse(originalRPmat[i,g] <= .1, ComRmatFin[i,g] <- paste(ComRmat[i,g], "'",sep=""),
                                ifelse(i==g,ComRmatFin[i,g]<-paste('n=',ComRnmat[i,g],sep=""),
                                       ComRmatFin[i,g] <- ComRmat[i,g]))))
         }
@@ -135,7 +137,8 @@ cor_table<- function(x,vars=NULL,with=NULL,flag=TRUE,strict=FALSE,round = 2, typ
     if(strict==TRUE){
       for(i in 1:nrow(ComRmat)) {
         for (g in 1:ncol(ComRmat)){
-          ifelse(ComRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
+          # in the following statements replaced ComRPmat with originalRPmat
+          ifelse(originalRPmat[i,g] <= .01, ComRmatFin[i,g] <- paste(ComRmat[i,g], '*',sep=""),
                  ifelse(i==g,ComRmatFin[i,g]<-paste('n=',ComRnmat[i,g],sep=""),
                         ComRmatFin[i,g] <- ComRmat[i,g]))
         }
