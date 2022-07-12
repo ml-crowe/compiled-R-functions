@@ -279,6 +279,15 @@ numNAs<-function(x){
   sum(is.na(x))
 }
 
+# Comparing columns, including NAs #####
+compareNA <- function(v1,v2) {
+  # This function returns TRUE wherever elements are the same, including NA's,
+  # and false everywhere else.
+  same <- (v1 == v2)  |  (is.na(v1) & is.na(v2))
+  same[is.na(same)] <- FALSE
+  return(same)
+}
+
 #### IRT function ####
 
 irt.func<-function(dataframe, irt.model = NULL, factors = 1, seed = 123, ...){ #dataframe should not include ID variable
