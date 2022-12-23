@@ -1013,9 +1013,28 @@ p.missing <- function(df, sort = F){
 #  mutate_at(vars(PCL1,PCL11,PCL17), .funs = funs(binary = car::recode(., "1:2 = 0; 3:5 = 1")))
 
 #### Calculate Mode from vector #####
-getmode <- function(v) {
-  uniqv <- unique(v)
-  uniqv[which.max(tabulate(match(v, uniqv)))]
+## This if vector is multimodal, this function will just return the first value
+#Mode <- function(x, na.rm = FALSE) {
+#  if(na.rm){
+#    x = x[!is.na(x)]
+#  }
+#  
+#  ux <- unique(x)
+#  return(ux[which.max(tabulate(match(x, ux)))])
+#}
+
+# This is a modification of the above that will return the mean of the modes in the event that multiple values appear an equal number of times
+Mode <- function(x, na.rm = FALSE) {
+  if(na.rm){
+    x = x[!is.na(x)]
+  }
+  ux <- unique(x)
+  tabs <- tabulate(match(x, ux))
+  max <- max(tabs)
+  getmode <- ux[which(tabs == max)]
+  ifelse(length(getmode) > 1, 
+         return(mean(getmode)),
+         return(getmode))
 }
 
 #### Force a specific number of decimals #####
@@ -1348,3 +1367,5 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
 #g <- ggplot_build(p)
 #g$data[[1]]
 
+# Should make function to easily plot relationship between two variables ----
+# ggplot(out, aes(x=var.1, y=var.2)) + geom_point() + coord_fixed() + geom_smooth(method='lm')
