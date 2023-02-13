@@ -1369,3 +1369,23 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
 
 # Should make function to easily plot relationship between two variables ----
 # ggplot(out, aes(x=var.1, y=var.2)) + geom_point() + coord_fixed() + geom_smooth(method='lm')
+
+# SEM Plot figure ----
+# This syntax resulted in a pretty decent CFA plot; might be able to build something from that
+# the five_factor_cfa object is a lavaan model object
+
+# semPaths(five_factor_cfa, 'model','estimates', 'lisrel',
+#          'tree2',
+#          intercepts = F, nCharNodes = 0,
+#          sizeMan = 3, sizeMan2 = 3,
+#          sizeLat = 8, sizeLat2 = 5,
+#          fixedStyle = c('black', 2),
+#          freeStyle = 'black',
+#          #layoutSplit = T,
+#          #levels = c(1,1.1), #can't figure out how to make levels closer using this function
+#          nDigits = 2,
+#          label.cex = 2,
+#          #filetype = 'pdf',
+#          #width = 10, height = 6,
+#          mar = c(3,3,3,3),
+#          normalize = T)
