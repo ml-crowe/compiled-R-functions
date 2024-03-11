@@ -267,6 +267,12 @@ summary.r_table<-function(x,...){
   cat("\nIf strict = FALSE: .01 **; .05 *\nIf strict = TRUE: .01 *\n")
 }
 
+#### Double Entry ICC ####
+# Need to fix to allow input of dataframe with 2 columns
+double.icc <- function(v1, v2){
+  cor(x = c(v1,v2), y = c(v2,v1))
+}
+
 #### Number Format ####
 #don't use this one much anymore, found it online, it can be used to remove leading zeros when printing tables
 #but it turns them into character vectors so it can lead to problems, I think I have only ever used it within
@@ -914,8 +920,57 @@ extract.scores <- function(fa.list, order.names = F, method = 'Thurstone', dat =
   return(scores.dat)
 }
 
+# This is the original function designed to work with dataframes that were entirely numeric
+# avg.list <- function(list){
+#   Reduce("+", list)/length(list)
+# }
+
+# This was developed with the help of generative AI, to be used as part of a different project
+# (needed a way to summarize across a list of lavaan outputs that include both numeric and character vectors)
+# I think this should work just as well with lists that are all numeric, but it has not been checked for that purpose
+# avg.list <- function(list){
+#   
+#   # Extract column names 
+#   cols <- colnames(list[[1]])
+#   
+#   # Split between character and numeric columns
+#   char_cols <- cols[sapply(list[[1]], is.character)]
+#   num_cols <- setdiff(cols, char_cols)
+#   
+#   # Initialize output
+#   out <- list[[1]][char_cols]
+#   
+#   # Average numeric columns
+#   for(c in num_cols){
+#     out[[c]] <- Reduce("+", lapply(list, "[[", c))/length(list)
+#   }
+#   
+#   as.data.frame(out)
+# }
+
+# Realized the above requires there to be named columns, what follows is a integration of the two functions:
 avg.list <- function(list){
-  Reduce("+", list)/length(list)
+  
+  # Extract column names 
+  cols <- colnames(list[[1]])
+  
+  if(is.null(cols)){
+    Reduce("+", list)/length(list)
+  } else {
+    # Split between character and numeric columns
+    char_cols <- cols[sapply(list[[1]], is.character)]
+    num_cols <- setdiff(cols, char_cols)
+    
+    # Initialize output
+    out <- list[[1]][char_cols]
+    
+    # Average numeric columns
+    for(c in num_cols){
+      out[[c]] <- Reduce("+", lapply(list, "[[", c))/length(list)
+    }
+    
+    as.data.frame(out)
+  }
 }
 
 #Can pull specific parts of EFA output using sapply
@@ -1389,3 +1444,223 @@ calc.edge.dif <- function(x, alpha = .05, statistics = 'edge',
 #          #width = 10, height = 6,
 #          mar = c(3,3,3,3),
 #          normalize = T)
+
+# Calculate from summary ----
+# The following is example syntax I used to calculate McFadden's r-square from the summary results of logistic regression
+# The with() function seems useful here, I need to understand that better
+# glm(SCID1_PTSD_Currentdx_T2 ~  scale(PCL5tot_T2) + scale(PHQMDDsev_T2), data = fa.df, family = 'binomial') %>% summary %>% with(1-deviance/null.deviance)
+
+# Detect warnings ----
+# Detect Warnings in lavaan models
+#' Catch errors and warnings and store them for subsequent evaluation
+#'
+#' Factory modified from a version written by Martin Morgan on Stack Overflow (see below).  
+#' Factory generates a function which is appropriately wrapped by error handlers.  
+#' If there are no errors and no warnings, the result is provided.  
+#' If there are warnings but no errors, the result is provided with a warn attribute set.
+#' If there are errors, the result retutrns is a list with the elements of warn and err.
+#' This is a nice way to recover from a problems that may have occurred during loop evaluation or during cluster usage.
+#' Check the references for additional related functions.
+#' I have not included the other factory functions included in the original Stack Overflow answer because they did not play well with the return item as an S4 object.
+#' @export
+#' @param fun The function to be turned into a factory
+#' @return The result of the function given to turn into a factory.  If this function was in error "An error as occurred" as a character element.  factory-error and factory-warning attributes may also be set as appropriate.
+#' @references
+#' \url{http://stackoverflow.com/questions/4948361/how-do-i-save-warnings-and-errors-as-output-from-a-function}
+#' @author Martin Morgan; Modified by Russell S. Pierce
+#' @examples 
+#' f.log <- factory(log)
+#' f.log("a")
+#' f.as.numeric <- factory(as.numeric)
+#' f.as.numeric(c("a","b",1))
+factory <- function (fun) {
+  errorOccurred <- FALSE
+  library(data.table)
+  function(...) {
+    warn <- err <- NULL
+    res <- withCallingHandlers(tryCatch(fun(...), error = function(e) {
+      err <<- conditionMessage(e)
+      errorOccurred <<- TRUE
+      NULL
+    }), warning = function(w) {
+      warn <<- append(warn, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+    # The following three lines were part of the original syntax that I downloaded, but including that
+    # appears to replace the results of the function with the character string, which makes it difficult
+    # to check to see what the error actually was
+    # if (errorOccurred) {
+    #   res <- "An error occurred in the factory function"
+    # } 
+    
+    if (is.character(warn)) {
+      data.table::setattr(res,"factory-warning",warn)
+    } else {
+      data.table::setattr(res,"factory-warning",NULL) 
+    }
+    
+    if (is.character(err)) {
+      data.table::setattr(res,"factory-error",err)
+    } else {
+      data.table::setattr(res, "factory-error", NULL)
+    }  
+    return(res)
+  }
+}
+
+.has <- function(x, what) {
+  !is.null(attr(x,what))
+}
+
+hasWarning <- function(x) {.has(x, "factory-warning")}
+hasError <- function(x) {.has(x, "factory-error")}
+isClean <- function(x) {!(hasError(x) | hasWarning(x))}
+
+# # attr([object],"factory-warning") # to see warning
+# # Need to use this function as a wrapper, so if running CFA models, you need to use:
+# f.cfa <- factory(cfa)
+
+# # example:
+# fit1s <- map(balanced_dfs[1:100], function(x){
+#   f.cfa(mod, data = x, missing = 'pairwise', estimator = 'WLSMV', group = "white_black")
+# })
+# beep()
+# 
+# fit1s_no_warnings <- map(fit1s, ~attr(.x, "factory-warning")) %>% 
+#   sapply(is.null)
+
+# Compare observed cor matrix to model implied cor matrix ----
+# from Thomas: You might appreciate this: I made a function to make a correlation table based on an observed vs model-implied correlation matrix: the upper diagonal shows the observed correlations, and the lower diagonal shows the model-implied correlations, and the color of each cell is proportional to the difference for the respective correlation between observed and model-implied. the only arguments you need are 1) the fitted lavaan object from cfa() or whatever and 2) the observed correlation matrix created with cor()
+create_comparison_table <- function(fitted_lavaan_object, observed_cor_matrix) {
+  
+  implied_corrmat <- lavaan::lavInspect(fitted_lavaan_object, 'cov.ov', add.class=FALSE) |> cov2cor()
+  
+  sortcol_impcormat <- implied_corrmat[, order(colnames(implied_corrmat))]
+  sortrow_impcormat <- sortcol_impcormat[order(rownames(sortcol_impcormat)), ]
+  
+  model_implied_cor <- sortrow_impcormat
+  observed_cor <- observed_cor_matrix
+  
+  combined_cor <- observed_cor
+  combined_cor[lower.tri(combined_cor)] <- model_implied_cor[lower.tri(model_implied_cor)]
+  
+  difference_matrix <- abs(model_implied_cor - observed_cor)
+  
+  double_df_with_differences <- combined_cor |> tibble::as_tibble(rownames = "var") |>
+    dplyr::bind_cols(
+      difference_matrix |> tibble::as_tibble() |> dplyr::rename_with(~ paste0("diff_", .x))
+    )
+  
+  gt_table <- gt::gt(double_df_with_differences) %>%
+    gt::fmt_number(columns = tidyselect::everything(), decimals = 2) %>%
+    gt::data_color(
+      columns = tidyselect::starts_with('diff_'),
+      fn = scales::col_numeric(
+        palette = "Blues",
+        domain = c(min(difference_matrix), max(difference_matrix))
+      ),
+      target_columns = !tidyselect::starts_with('diff_') & !tidyselect::starts_with('var')
+    ) |>
+    gt::cols_hide(columns = tidyselect::starts_with('diff_')) |>
+    gt::tab_header(
+      title = gt::md("Observed (upper) vs Model-implied (lower) Correlations"),
+      subtitle = "Color corresponds to the magnitude of the difference between observed and model-implied matrices"
+    ) |> 
+    gt::cols_align('center')
+  
+  return(gt_table)
+}
+
+# Install package from github ----
+# reminder of how to install package directly from github
+# remotes::install_github("yrosseel/lavaan")
+
+# Superscripts for correlation differences ----
+# Note that tests value is vector of correlation differences
+#          1v2          1v3          1v4          2v3          2v4          3v4 
+# 2.871070e-01 4.112781e-02 5.599676e-11 3.602023e-01 7.344505e-09 8.336107e-06 
+
+# Can apply to dataframe using apply function as in:
+# apply(cor.dif, 1, labs, nvar = 4, pvalue = .01) %>% t
+
+labs <- function(tests, nvar = 4, pvalue = .01){
+  "%next%" <- function(x, y) x[!x %in% y][1] #--  x without y
+  labels <- vector('character',nvar)
+  names(labels) <- paste0('v',1:nvar)
+  mat <- matrix(nrow = nvar, ncol = nvar)
+  mat[lower.tri(mat, diag = F)] <- tests
+  mat[upper.tri(mat, diag = F)] <- t(mat)[upper.tri(t(mat),diag = F)]
+  used.letters <- c()
+  if(any(mat <= pvalue, na.rm = T)){
+    for(i in 1:nvar){
+      if(any(mat[,i] <= pvalue, na.rm = T)){ 
+        labels[[i]] <- paste0(labels[[i]],unique(labels[which(mat[,i] > pvalue)]), collapse = '') # assign labels for vars that are the same 
+        if(str_length(labels[which(mat[,i] < pvalue)] %>% str_split('') %>% unlist() %>% paste0(collapse = '|')) > 0){
+          labels[[i]] <- str_replace(labels[[i]], 
+                                     labels[which(mat[,i] < pvalue)] %>% str_split('') %>% unlist() %>% paste0(collapse = '|'), # any of the labels it can't use
+                                     '')
+        }
+        if(str_length(labels[[i]]) == 0){
+          used.letters <- c(used.letters,letters %next% used.letters)
+          labels[[i]] <- tail(used.letters, 1)
+        }
+      }
+    }
+    for(i in nvar:1){
+      if(any(mat[,i] > pvalue, na.rm = T)){
+        for(j in which(mat[,i] > pvalue)){
+          if(!any((labels[[i]] %>% str_split('') %>% unlist()) %in% (labels[[j]] %>% str_split('') %>% unlist())) & labels[[j]] != ""){
+            labels[[j]] <- paste0(labels[[j]], labels[[i]], collapse = '')
+          }
+        }
+      }
+    }
+    return(labels)
+  }else{
+    return(labels)
+  }
+}
+
+# # What follows is he results of a gpt-4 prompt in which I asked it to provide an improved version of the above function
+# # I tried running it using data from the atrocities project and it resulted in an error - didn't spend any time trying to correct the function
+# assignLabelsBasedOnPValue <- function(tests, nvar = 4, pvalue = .01){
+#   if(!is.numeric(tests)) stop("'tests' must be a numeric vector or matrix")
+#   if(length(tests) != nvar*(nvar-1)/2) stop("'tests' must be of length nvar*(nvar-1)/2")
+#   
+#   nextElement <- function(x, y) x[!x %in% y][1] # x without y
+#   
+#   labels <- paste0('v',1:nvar)
+#   names(labels) <- labels
+#   
+#   mat <- matrix(nrow = nvar, ncol = nvar)
+#   mat[lower.tri(mat, diag = FALSE)] <- tests
+#   mat[upper.tri(mat, diag = FALSE)] <- t(mat)[upper.tri(t(mat),diag = FALSE)]
+#   
+#   used.letters <- c()
+#   
+#   if(any(mat <= pvalue, na.rm = TRUE)){
+#     for(i in 1:nvar){
+#       if(any(mat[,i] <= pvalue, na.rm = TRUE)){ 
+#         labels[i] <- paste(labels[i], unique(labels[mat[,i] > pvalue]), collapse = '') 
+#         forbidden_labels <- labels[mat[,i] < pvalue]
+#         if(nchar(forbidden_labels) > 0){
+#           labels[i] <- gsub(paste(strsplit(forbidden_labels, "")[[1]], collapse = '|'), '', labels[i])
+#         }
+#         if(nchar(labels[i]) == 0){
+#           used.letters <- c(used.letters, nextElement(letters, used.letters))
+#           labels[i] <- tail(used.letters, 1)
+#         }
+#       }
+#     }
+#     for(i in nvar:1){
+#       if(any(mat[,i] > pvalue, na.rm = TRUE)){
+#         for(j in which(mat[,i] > pvalue)){
+#           if(!any(strsplit(labels[i], "")[[1]] %in% strsplit(labels[j], "")[[1]]) & labels[j] != ""){
+#             labels[j] <- paste(labels[j], labels[i], collapse = '')
+#           }
+#         }
+#       }
+#     }
+#   }
+#   return(labels)
+# }
