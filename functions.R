@@ -1576,9 +1576,25 @@ create_comparison_table <- function(fitted_lavaan_object, observed_cor_matrix) {
 # remotes::install_github("yrosseel/lavaan")
 
 # Superscripts for correlation differences ----
-# Note that tests value is vector of correlation differences
+# Note that tests value is dataframe of correlation difference test p-values
 #          1v2          1v3          1v4          2v3          2v4          3v4 
 # 2.871070e-01 4.112781e-02 5.599676e-11 3.602023e-01 7.344505e-09 8.336107e-06 
+
+# # Syntax I have used previously to generate the "tests" dataframe for this function follows:
+# cors <- select(df, c('part','obs', 'decl', 'DRRICombattot_T1', criteria)) %>% 
+#   as.matrix %>% 
+#   rcorr(., type = 'spearman')
+# 
+# ## Test correlation differences
+# cor.dif <- sapply(rownames(cors$r)[5:length(rownames(cors$r))], function(third.var){
+#   lapply(1:3, function(x){
+#     lapply(1:(4-x), function(y){
+#       out <- cocor.dep.groups.overlap(cors$r[third.var,x], cors$r[third.var,(x+y)], cors$r[x,(x+y)], min(cors$n[third.var,(x+y)], cors$n[third.var,(x+y)], cors$n[x,(x+y)]), test = 'meng1992')@meng1992$p.value
+#       names(out) = paste0(x,'v',(x+y))
+#       return(out)
+#     }) %>% do.call(c, .)
+#   }) %>% do.call(c, .)
+# }) %>% t
 
 # Can apply to dataframe using apply function as in:
 # apply(cor.dif, 1, labs, nvar = 4, pvalue = .01) %>% t
